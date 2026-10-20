@@ -239,7 +239,9 @@ export const api = {
   // YouTube
   getYouTubeStatus: () => request<YouTubeStatus>('/youtube/status'),
   connectYouTube: () => request<{ auth_url: string; configured: boolean; message: string }>('/youtube/connect', { method: 'POST' }),
-  uploadVideoToYouTube: (videoId: string, payload?: { title?: string; description?: string; tags?: string[]; privacy_status?: string }) =>
+  disconnectYouTube: () => request<{ status: string; message: string }>('/youtube/disconnect', { method: 'POST' }),
+  syncYouTubeMetrics: () => request<{ status: string; message: string; synced_count: number; metrics: any }>('/youtube/sync-metrics', { method: 'POST' }),
+  uploadVideoToYouTube: (videoId: string, payload?: { title?: string; description?: string; tags?: string[]; privacy_status?: string; publish_at?: string }) =>
     request<any>(`/youtube/upload/${videoId}`, {
       method: 'POST',
       body: JSON.stringify(payload || {}),

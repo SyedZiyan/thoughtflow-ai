@@ -1,0 +1,166 @@
+import json
+import pytest
+from pathlib import Path
+from datetime import datetime, timezone
+from fastapi.testclient import TestClient
+from app.main import app
+from app.db.session import SessionLocal
+from app.models.models import User, Thought, Video, Integration, ActivityLog
+from app.api.deps import get_or_create_default_user
+from app.services.youtube_service import youtube_service
+from app.core.security import encrypt_token, decrypt_token
+from app.core.config import settings
+
+client = TestClient(app)
+
+# ==========================================
+# 1. OAUTH2 FLOW & CREDENTIAL ENCRYPTION
+# ==========================================
+
+def test_oauth_url_generation_unconfigured(monkeypatch):
+    monkeypatch.setattr(youtube_service, "client_id", None)
+    monkeypatch.setattr(youtube_service, "client_secret", None)
+
+    res = youtube_service.get_auth_url()
+    assert res["configured"] is False
+    assert res["auth_url"] == ""
+    assert "GOOGLE_CLIENT_ID" in res["message"]
+
+def test_oauth_url_generation_configured(monkeypatch):
+    monkeypatch.setattr(youtube_service, "client_id", "test_client_id_123.apps.googleusercontent.com")
+    monkeypatch.setattr(youtube_service, "client_secret", "GOCSPX-test_client_secret_xyz")
+
+    res = youtube_service.get_auth_url(state="test_state_123")
+    assert res["configured"] is True
+    assert "accounts.google.com" in res["auth_url"]
+    assert "access_type=offline" in res["auth_url"]
+    assert "prompt=consent" in res["auth_url"]
+    assert "state=test_state_123" in res["auth_url"]
+
+def test_token_encryption_and_decryption():
+    raw_tokens = {
+        "token": "ya29.a0AfH6SMD_TEST_ACCESS_TOKEN",
+        "refresh_token": "1//04_TEST_REFRESH_TOKEN",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "client_id": "test_client_id.apps.googleusercontent.com",
+        "client_secret": "test_secret",
+        "scopes": ["https://www.googleapis.com/auth/youtube.upload"]
+    }
+
+    encrypted = encrypt_token(json.dumps(raw_tokens))
+    assert isinstance(encrypted, str)
+    # The raw tokens must NEVER appear in the encrypted ciphertext
+    assert "ya29.a0AfH6SMD_TEST_ACCESS_TOKEN" not in encrypted
+    assert "1//04_TEST_REFRESH_TOKEN" not in encrypted
+
+    decrypted_str = decrypt_token(encrypted)
+    decrypted = json.loads(decrypted_str)
+    assert decrypted["token"] == raw_tokens["token"]
+    assert decrypted["refresh_token"] == raw_tokens["refresh_token"]
+
+
+# ==========================================
+# 2. DRY-RUN SAFETY & FILE VALIDATION
+# ==========================================
+
+def test_dry_run_upload_safety(tmp_path):
+    test_video = tmp_path / "sample_short.mp4"
+    # Write a valid dummy video payload (>10KB)
+    test_video.write_bytes(b"\x00" * 15000)
+
+    # Calling upload without credentials or with upload disabled enters safe dry-run mode
+    res = youtube_service.upload_video(
+        video_path=str(test_video),
+        title="1% Better Everyday",
+        description="Daily reminder to compound positive habits.",
+        tags=["mindset", "habits"],
+        privacy_status="private",
+        encrypted_credentials_str=None
+    )
+
+    assert res["dry_run"] is True
+    assert res["status"] == "dry_run_validated"
+    assert "dryrun_" in res["youtube_video_id"]
+    assert "youtube.com" in res["youtube_url"]
+    assert "Dry-run mode active" in res["message"]
+
+def test_upload_missing_file():
+    with pytest.raises(FileNotFoundError, match="Video file not found"):
+        youtube_service.upload_video(
+            video_path="storage/videos/non_existent_thought_999.mp4",
+            title="Non-existent",
+            description="desc",
+            tags=["test"]
+        )
+
+def test_upload_corrupt_file_too_small(tmp_path):
+    corrupt_video = tmp_path / "tiny_corrupt.mp4"
+    corrupt_video.write_bytes(b"too small")
+
+    with pytest.raises(ValueError, match="Video file too small"):
+        youtube_service.upload_video(
+            video_path=str(corrupt_video),
+            title="Corrupt Video",
+            description="desc",
+            tags=["test"]
+        )
+
+
+# ==========================================
+# 3. YOUTUBE API ENDPOINTS
+# ==========================================
+
+def test_api_youtube_status_disconnected():
+    resp = client.get("/api/v1/youtube/status")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "upload_enabled" in data
+    assert "dry_run_mode" in data
+
+def test_api_youtube_status_connected():
+    db = SessionLocal()
+    try:
+        user = get_or_create_default_user(db)
+        integration = (
+            db.query(Integration)
+            .filter(Integration.user_id == user.id, Integration.provider == "youtube")
+            .first()
+        )
+        if not integration:
+            integration = Integration(user_id=user.id, provider="youtube")
+            db.add(integration)
+
+        integration.connection_status = "connected"
+        integration.channel_id = "UC_THOUGHTFLOW_TEST_CHANNEL"
+        integration.channel_title = "ThoughtFlow Motivation Official"
+        integration.channel_metadata = {
+            "channel_thumbnail": "https://yt3.ggpht.com/test_avatar.jpg",
+            "subscriber_count": 14200,
+            "video_count": 87,
+            "view_count": 940000
+        }
+        integration.connected_at = datetime.now(timezone.utc)
+        db.commit()
+
+        resp = client.get("/api/v1/youtube/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["connected"] is True
+        assert data["channel_title"] == "ThoughtFlow Motivation Official"
+        assert data["channel_id"] == "UC_THOUGHTFLOW_TEST_CHANNEL"
+        assert data["subscriber_count"] == 14200
+        assert data["view_count"] == 940000
+    finally:
+        db.close()
+
+def test_api_youtube_disconnect():
+    resp = client.post("/api/v1/youtube/disconnect")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "success"
+
+def test_api_youtube_sync_metrics_no_channel():
+    resp = client.post("/api/v1/youtube/sync-metrics")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] in ["skipped", "success"]
