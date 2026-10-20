@@ -73,4 +73,31 @@ class ThoughtFlowRepository {
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+
+    fun getYouTubeStatus(): Flow<Result<YouTubeStatusResponse>> = flow {
+        try {
+            val res = api.getYouTubeStatus()
+            emit(Result.success(res))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    fun connectYouTube(): Flow<Result<YouTubeConnectResponse>> = flow {
+        try {
+            val res = api.connectYouTube()
+            emit(Result.success(res))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    fun disconnectYouTube(): Flow<Result<Map<String, Any>>> = flow {
+        try {
+            val res = api.disconnectYouTube()
+            emit(Result.success(res))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
 }

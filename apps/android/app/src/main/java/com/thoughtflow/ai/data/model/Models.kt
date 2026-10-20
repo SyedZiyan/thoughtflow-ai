@@ -101,3 +101,20 @@ data class SettingsResponse(
     @SerializedName("daily_limit") val dailyLimit: Int = 5,
     @SerializedName("selected_themes") val selectedThemes: List<String> = emptyList()
 )
+
+data class YouTubeStatusResponse(
+    val connected: Boolean = false,
+    @SerializedName("channel_id") val channelId: String? = null,
+    @SerializedName("channel_title") val channelTitle: String? = null,
+    @SerializedName("channel_thumbnail") val channelThumbnail: String? = null,
+    @SerializedName("subscriber_count") val subscriberCount: Int? = null,
+    @SerializedName("video_count") val videoCount: Int? = null,
+    @SerializedName("upload_enabled") val uploadEnabled: Boolean = false,
+    @SerializedName("dry_run_mode") val dryRunMode: Boolean = true
+)
+
+data class YouTubeConnectResponse(
+    @SerializedName("auth_url") val authUrl: String? = null,
+    val configured: Boolean = false,
+    val message: String? = null
+)

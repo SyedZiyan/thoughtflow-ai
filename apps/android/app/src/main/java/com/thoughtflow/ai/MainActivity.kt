@@ -5,9 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,19 +37,17 @@ fun MainAppScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "dashboard"
 
-    var currentTab by remember { mutableStateOf("explore") }
+    var currentTab by remember { mutableStateOf("dashboard") }
 
     // Sync tab with route
     LaunchedEffect(currentRoute) {
         when {
-            currentRoute.startsWith("dashboard") -> currentTab = "explore"
+            currentRoute.startsWith("dashboard") -> currentTab = "dashboard"
             currentRoute.startsWith("library") -> currentTab = "library"
-            currentRoute.startsWith("youtube") -> currentTab = "notifications"
-            currentRoute.startsWith("settings") -> currentTab = "profile"
+            currentRoute.startsWith("youtube") -> currentTab = "activity"
+            currentRoute.startsWith("settings") -> currentTab = "settings"
         }
     }
-
-    val showBottomDock = currentRoute in listOf("dashboard", "library", "youtube", "settings")
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -105,7 +105,7 @@ fun MainAppScreen() {
 
             composable("library") {
                 LibraryScreen(
-                    onVideoSelected = { video ->
+                    onVideoSelected = {
                         navController.navigate("youtube")
                     }
                 )
@@ -137,44 +137,62 @@ fun MainAppScreen() {
         }
 
         // Signature Floating Bottom Dock (Images 1, 2 & 3)
-        if (showBottomDock) {
-            FloatingBottomDock(
-                currentTab = currentTab,
-                onTabSelected = { tab ->
-                    currentTab = tab
-                    when (tab) {
-                        "explore" -> {
-                            navController.navigate("dashboard") {
-                                popUpTo("dashboard") { inclusive = true }
-                                launchSingleTop = true
+        FloatingBottomDock(
+            currentTab = currentTab,
+            onTabSelected = { tab ->
+                when (tab) {
+                    "dashboard", "explore" -> {
+                        currentTab = "dashboard"
+                        navController.navigate("dashboard") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
-                        }
-                        "library" -> {
-                            navController.navigate("library") {
-                                launchSingleTop = true
-                            }
-                        }
-                        "notifications" -> {
-                            navController.navigate("youtube") {
-                                launchSingleTop = true
-                            }
-                        }
-                        "profile" -> {
-                            navController.navigate("settings") {
-                                launchSingleTop = true
-                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     }
-                },
-                onActionSelected = { action ->
-                    when (action) {
-                        "generate" -> navController.navigate("generator")
-                        "studio" -> navController.navigate("studio")
-                        "youtube" -> navController.navigate("youtube")
+                    "library" -> {
+                        currentTab = "library"
+                        navController.navigate("library") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
-                },
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
-        }
+                    "activity", "notifications", "youtube" -> {
+                        currentTab = "activity"
+                        navController.navigate("youtube") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                    "settings", "profile" -> {
+                        currentTab = "settings"
+                        navController.navigate("settings") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                }
+            },
+            onActionSelected = { action ->
+                when (action) {
+                    "generate" -> navController.navigate("generator")
+                    "studio" -> navController.navigate("studio")
+                    "youtube" -> navController.navigate("youtube")
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+        )
     }
 }

@@ -173,8 +173,9 @@ fun DashboardScreen(
                                 itemsCount = "+${dash.totalThoughts} thoughts",
                                 onNewClick = onNavigateToGenerator,
                                 onActionClick = {
-                                    viewModel.runPipeline { success, msg ->
-                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Running autonomous pipeline...", Toast.LENGTH_SHORT).show()
+                                    viewModel.runPipeline { _, msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                                     }
                                 }
                             )
