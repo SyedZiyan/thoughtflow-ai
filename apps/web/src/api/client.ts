@@ -174,18 +174,50 @@ export const api = {
     if (status) params.append('status', status);
     return request<VideoAsset[]>(`/videos?${params.toString()}`);
   },
+  getVideoStyles: () => request<{
+    visual_themes: Array<{ id: string; name: string; accent: number[] }>;
+    animation_styles: Array<{ id: string; name: string; desc: string }>;
+    typography_options: Array<{ id: string; name: string; style: string }>;
+    text_placements: Array<{ id: string; name: string }>;
+    tts_voices: Array<{ id: string; name: string; gender: string; lang: string }>;
+  }>('/videos/styles'),
+  previewFrame: async (payload: {
+    thought_text: string;
+    theme?: string;
+    visual_theme?: string;
+    typography?: string;
+    text_placement?: string;
+  }): Promise<string> => {
+    const resp = await fetch('/api/v1/videos/preview-frame', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      throw new Error(`Failed to generate frame preview: ${resp.statusText}`);
+    }
+    const blob = await resp.blob();
+    return URL.createObjectURL(blob);
+  },
   renderVideo: (payload: {
     thought_id: string;
     duration_seconds?: number;
     visual_theme?: string;
     animation_style?: string;
     typography?: string;
+    text_placement?: string;
     narration_enabled?: boolean;
+    ambient_enabled?: boolean;
+    narration_voice?: string;
   }) =>
     request<VideoAsset>('/videos/render', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  retryVideo: (id: string) =>
+    request<VideoAsset>(`/videos/${id}/retry`, { method: 'POST' }),
+  validateVideo: (id: string) =>
+    request<any>(`/videos/${id}/validate`, { method: 'POST' }),
 
   // Automation & Pipeline
   runPipeline: (theme?: string, prompt?: string) =>

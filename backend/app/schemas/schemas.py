@@ -77,8 +77,18 @@ class VideoRenderRequest(BaseModel):
     duration_seconds: Optional[int] = 15
     visual_theme: Optional[str] = "gradient_purple"
     animation_style: Optional[str] = "smooth_zoom"
-    typography: Optional[str] = "inter"
+    typography: Optional[str] = "modern_sans"
+    text_placement: Optional[str] = "center"
     narration_enabled: Optional[bool] = False
+    ambient_enabled: Optional[bool] = True
+    narration_voice: Optional[str] = None
+
+class VideoPreviewRequest(BaseModel):
+    thought_text: str
+    theme: Optional[str] = "motivation"
+    visual_theme: Optional[str] = "gradient_purple"
+    typography: Optional[str] = "modern_sans"
+    text_placement: Optional[str] = "center"
 
 class VideoResponse(BaseModel):
     id: str

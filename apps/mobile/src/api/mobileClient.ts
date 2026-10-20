@@ -44,7 +44,18 @@ export const mobileApi = {
       body: JSON.stringify(payload),
     }),
   getVideos: () => mobileRequest<any[]>('/videos'),
-  renderVideo: (payload: { thought_id: string; duration_seconds?: number; visual_theme?: string }) =>
+  getVideoStyles: () => mobileRequest<any>('/videos/styles'),
+  renderVideo: (payload: {
+    thought_id: string;
+    duration_seconds?: number;
+    visual_theme?: string;
+    animation_style?: string;
+    typography?: string;
+    text_placement?: string;
+    narration_enabled?: boolean;
+    ambient_enabled?: boolean;
+    narration_voice?: string;
+  }) =>
     mobileRequest<any>('/videos/render', {
       method: 'POST',
       body: JSON.stringify(payload),

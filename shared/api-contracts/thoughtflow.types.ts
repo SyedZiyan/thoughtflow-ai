@@ -156,10 +156,21 @@ export interface ThoughtGenerateRequest {
 export interface VideoRenderRequest {
   thought_id: string;
   duration_seconds?: number;
-  visual_theme?: 'gradient_purple' | 'geometric_dark' | 'nebula' | 'gold_luxury' | 'minimal_slate';
-  animation_style?: 'smooth_zoom' | 'kinetic_pan' | 'fade_stagger' | 'pulse_glow';
-  typography?: 'inter' | 'montserrat' | 'playfair';
+  visual_theme?: 'gradient_purple' | 'geometric_dark' | 'nebula' | 'gold_luxury' | 'minimal_slate' | 'sunset_crimson';
+  animation_style?: 'smooth_zoom' | 'kinetic_pan' | 'subtle_pulse' | 'gentle_drift';
+  typography?: 'modern_sans' | 'editorial_serif' | 'clean_mono';
+  text_placement?: 'center' | 'upper_third' | 'lower_third';
   narration_enabled?: boolean;
+  ambient_enabled?: boolean;
+  narration_voice?: string;
+}
+
+export interface VideoPreviewRequest {
+  thought_text: string;
+  theme?: string;
+  visual_theme?: string;
+  typography?: string;
+  text_placement?: string;
 }
 
 export interface YouTubeUploadRequest {

@@ -12,21 +12,51 @@ import {
   CheckCircle2,
   Sliders,
   Clock,
-  Layers
+  Layers,
+  Type,
+  AlignVerticalJustifyCenter,
+  Volume2,
+  Mic,
+  Music,
+  Eye,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import { api, Thought, VideoAsset } from '../api/client';
 
 const VISUAL_THEMES = [
-  { id: 'gradient_purple', name: 'Cosmic Purple', preview: 'from-purple-950 to-indigo-950' },
-  { id: 'geometric_dark', name: 'Emerald Obsidian', preview: 'from-emerald-950 to-slate-950' },
-  { id: 'nebula', name: 'Midnight Cyan', preview: 'from-blue-950 to-slate-900' },
-  { id: 'gold_luxury', name: 'Bronze Luxury', preview: 'from-amber-950 to-neutral-950' },
-  { id: 'minimal_slate', name: 'Graphite Minimal', preview: 'from-slate-900 to-zinc-900' },
+  { id: 'gradient_purple', name: 'Cosmic Purple', preview: 'from-purple-950 via-indigo-950 to-slate-950', accent: '#a878ff' },
+  { id: 'geometric_dark', name: 'Emerald Obsidian', preview: 'from-emerald-950 via-slate-900 to-black', accent: '#34d399' },
+  { id: 'nebula', name: 'Midnight Cyan', preview: 'from-blue-950 via-slate-900 to-slate-950', accent: '#38bdf8' },
+  { id: 'gold_luxury', name: 'Bronze Luxury', preview: 'from-amber-950 via-neutral-900 to-black', accent: '#fbbf24' },
+  { id: 'minimal_slate', name: 'Graphite Minimal', preview: 'from-slate-900 via-zinc-900 to-neutral-950', accent: '#94a3b8' },
+  { id: 'sunset_crimson', name: 'Sunset Crimson', preview: 'from-rose-950 via-stone-900 to-black', accent: '#f43f5e' }
 ];
 
 const ANIMATION_STYLES = [
-  { id: 'smooth_zoom', name: 'Slow Cinematic Zoom', desc: 'Ken Burns slow continuous punch-in' },
-  { id: 'kinetic_pan', name: 'Kinetic Vertical Pan', desc: 'Subtle downward framed tracking' }
+  { id: 'smooth_zoom', name: 'Cinematic Zoom', desc: 'Slow continuous punch-in' },
+  { id: 'kinetic_pan', name: 'Kinetic Vertical Pan', desc: 'Subtle downward framed tracking' },
+  { id: 'subtle_pulse', name: 'Breathing Pulse', desc: 'Gentle oscillating zoom rhythm' },
+  { id: 'gentle_drift', name: 'Diagonal Drift', desc: 'Slow diagonal panning motion' }
+];
+
+const TYPOGRAPHY_OPTIONS = [
+  { id: 'modern_sans', name: 'Modern Sans', preview: 'Segoe UI / Arial', desc: 'Crisp, bold, punchy' },
+  { id: 'editorial_serif', name: 'Editorial Serif', preview: 'Georgia / Times', desc: 'Literary, reflective elegance' },
+  { id: 'clean_mono', name: 'Clean Monospace', preview: 'Consolas / Mono', desc: 'Minimalist tech aesthetic' }
+];
+
+const TEXT_PLACEMENTS = [
+  { id: 'center', name: 'Center' },
+  { id: 'upper_third', name: 'Upper Third' },
+  { id: 'lower_third', name: 'Lower Third' }
+];
+
+const TTS_VOICES = [
+  { id: 'en-US-ChristopherNeural', name: 'Christopher (Motivating Male)' },
+  { id: 'en-US-JennyNeural', name: 'Jenny (Warm Female)' },
+  { id: 'en-US-GuyNeural', name: 'Guy (Conversational Male)' },
+  { id: 'en-GB-SoniaNeural', name: 'Sonia (Reflective British Female)' }
 ];
 
 export const VideoStudio: React.FC = () => {
@@ -37,17 +67,23 @@ export const VideoStudio: React.FC = () => {
   const [selectedThoughtId, setSelectedThoughtId] = useState<string>('');
   const [visualTheme, setVisualTheme] = useState('gradient_purple');
   const [animationStyle, setAnimationStyle] = useState('smooth_zoom');
+  const [typography, setTypography] = useState('modern_sans');
+  const [textPlacement, setTextPlacement] = useState('center');
   const [duration, setDuration] = useState(15);
   const [narrationEnabled, setNarrationEnabled] = useState(false);
+  const [ambientEnabled, setAmbientEnabled] = useState(true);
+  const [narrationVoice, setNarrationVoice] = useState('en-US-ChristopherNeural');
   const [renderedVideo, setRenderedVideo] = useState<VideoAsset | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'preview' | 'video'>('preview');
 
-  // Fetch all thoughts to select from
+  // Fetch thoughts catalog
   const { data: thoughts, isLoading: thoughtsLoading } = useQuery<Thought[]>({
     queryKey: ['thoughts'],
     queryFn: () => api.getThoughts(),
   });
 
-  // Set initial selected thought from location state or first item
   useEffect(() => {
     if (location.state?.thoughtId) {
       setSelectedThoughtId(location.state.thoughtId);
@@ -58,6 +94,38 @@ export const VideoStudio: React.FC = () => {
 
   const selectedThought = thoughts?.find((t) => t.id === selectedThoughtId);
 
+  // Live slide preview generator
+  useEffect(() => {
+    if (!selectedThought?.text) return;
+
+    let isMounted = true;
+    setPreviewLoading(true);
+
+    const timeout = setTimeout(async () => {
+      try {
+        const url = await api.previewFrame({
+          thought_text: selectedThought.text,
+          theme: selectedThought.theme,
+          visual_theme: visualTheme,
+          typography: typography,
+          text_placement: textPlacement
+        });
+        if (isMounted) {
+          setPreviewImageUrl(url);
+          setPreviewLoading(false);
+        }
+      } catch (err) {
+        console.error('Preview error:', err);
+        if (isMounted) setPreviewLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+    };
+  }, [selectedThought?.text, visualTheme, typography, textPlacement]);
+
   const renderMutation = useMutation({
     mutationFn: () => {
       if (!selectedThoughtId) throw new Error('Please select a thought first');
@@ -65,15 +133,19 @@ export const VideoStudio: React.FC = () => {
         thought_id: selectedThoughtId,
         visual_theme: visualTheme,
         animation_style: animationStyle,
+        typography: typography,
+        text_placement: textPlacement,
         duration_seconds: duration,
         narration_enabled: narrationEnabled,
+        ambient_enabled: ambientEnabled,
+        narration_voice: narrationVoice,
       });
     },
     onSuccess: (video) => {
       setRenderedVideo(video);
+      setActiveTab('video');
       queryClient.invalidateQueries({ queryKey: ['videos'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      alert('1080x1920 Animated Vertical MP4 rendered successfully!');
     },
     onError: (err: any) => {
       alert(`Render failed: ${err.message}`);
@@ -94,9 +166,14 @@ export const VideoStudio: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Video Studio</h1>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+          <span>Video Studio</span>
+          <span className="text-xs px-2.5 py-1 rounded-full bg-brand-500/20 text-brand-300 font-semibold border border-brand-500/30">
+            Phase 3 Engine
+          </span>
+        </h1>
         <p className="text-sm text-slate-400 mt-1">
-          Compose, style, and render animated vertical 9:16 MP4s with Pillow aesthetics and FFmpeg motion filters.
+          Compose typography, select luxury palettes, mix neural narration & ambient chords, and render 1080×1920 MP4s.
         </p>
       </div>
 
@@ -170,11 +247,61 @@ export const VideoStudio: React.FC = () => {
               </div>
             </div>
 
+            {/* Typography & Placement */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-400 mb-2 flex items-center gap-1.5">
+                  <Type className="w-3.5 h-3.5 text-brand-400" />
+                  <span>3. Typography</span>
+                </label>
+                <div className="space-y-2">
+                  {TYPOGRAPHY_OPTIONS.map((ty) => (
+                    <button
+                      key={ty.id}
+                      type="button"
+                      onClick={() => setTypography(ty.id)}
+                      className={`w-full p-2.5 rounded-xl border text-left transition-all text-xs ${
+                        typography === ty.id
+                          ? 'border-brand-500 bg-brand-600/20 text-white font-bold'
+                          : 'border-white/5 bg-white/5 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <div>{ty.name}</div>
+                      <div className="text-[10px] text-slate-500">{ty.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-400 mb-2 flex items-center gap-1.5">
+                  <AlignVerticalJustifyCenter className="w-3.5 h-3.5 text-brand-400" />
+                  <span>4. Text Placement</span>
+                </label>
+                <div className="space-y-2">
+                  {TEXT_PLACEMENTS.map((tp) => (
+                    <button
+                      key={tp.id}
+                      type="button"
+                      onClick={() => setTextPlacement(tp.id)}
+                      className={`w-full p-2.5 rounded-xl border text-left transition-all text-xs ${
+                        textPlacement === tp.id
+                          ? 'border-brand-500 bg-brand-600/20 text-white font-bold'
+                          : 'border-white/5 bg-white/5 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {tp.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Animation Style */}
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-2 flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-brand-400" />
-                <span>3. Animation Effect</span>
+                <span>5. Animation Effect</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {ANIMATION_STYLES.map((st) => (
@@ -195,11 +322,67 @@ export const VideoStudio: React.FC = () => {
               </div>
             </div>
 
+            {/* Audio Options: Narration & Ambient */}
+            <div className="glass-card rounded-2xl p-4 border border-white/5 space-y-4">
+              <div className="text-xs font-semibold uppercase text-slate-400 flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5 text-brand-400" />
+                <span>6. Audio & Narration Engine</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Narration Toggle */}
+                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                      <Mic className="w-3.5 h-3.5 text-brand-400" />
+                      <span>AI Voice Narration</span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={narrationEnabled}
+                      onChange={(e) => setNarrationEnabled(e.target.checked)}
+                      className="rounded accent-brand-500 cursor-pointer"
+                    />
+                  </div>
+                  {narrationEnabled && (
+                    <select
+                      value={narrationVoice}
+                      onChange={(e) => setNarrationVoice(e.target.value)}
+                      className="w-full text-xs p-2 rounded-lg bg-dark-800 border border-white/10 text-slate-200"
+                    >
+                      {TTS_VOICES.map((v) => (
+                        <option key={v.id} value={v.id}>{v.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {/* Ambient Chords Toggle */}
+                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                      <Music className="w-3.5 h-3.5 text-brand-400" />
+                      <span>Ambient Chords</span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={ambientEnabled}
+                      onChange={(e) => setAmbientEnabled(e.target.checked)}
+                      className="rounded accent-brand-500 cursor-pointer"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Generates soothing ambient drone chords with volume ducking.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Duration Selector */}
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-2 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-brand-400" />
-                <span>4. Video Duration</span>
+                <span>7. Video Duration</span>
               </label>
               <div className="flex gap-3">
                 {[10, 15, 20, 30].map((sec) => (
@@ -219,16 +402,16 @@ export const VideoStudio: React.FC = () => {
               </div>
             </div>
 
-            {/* Render Button */}
+            {/* Render Action Button */}
             <button
               onClick={() => renderMutation.mutate()}
               disabled={renderMutation.isPending || !selectedThoughtId}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 transition-all disabled:opacity-50"
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 transition-all disabled:opacity-50"
             >
               {renderMutation.isPending ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>Rendering 1080x1920 MP4 Video...</span>
+                  <span>Compiling 1080×1920 MP4 Video...</span>
                 </>
               ) : (
                 <>
@@ -240,50 +423,93 @@ export const VideoStudio: React.FC = () => {
           </div>
         </div>
 
-        {/* Video Player & Inspection Column */}
+        {/* Video Player & Real-Time Slide Preview Column */}
         <div className="lg:col-span-5 space-y-6">
           <div className="glass-panel rounded-3xl p-6 border border-white/5 flex flex-col items-center">
-            <h3 className="text-sm font-bold text-white mb-4 w-full text-left flex items-center justify-between">
-              <span>Vertical 9:16 Player Preview</span>
-              {renderedVideo && (
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-                  Ready ({renderedVideo.duration_seconds}s)
-                </span>
-              )}
-            </h3>
+            {/* View Mode Switcher */}
+            <div className="flex w-full mb-4 p-1 rounded-2xl bg-white/5 border border-white/5">
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                  activeTab === 'preview'
+                    ? 'bg-brand-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Live Slide Preview</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('video')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                  activeTab === 'video'
+                    ? 'bg-brand-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Play className="w-3.5 h-3.5" />
+                <span>Rendered MP4</span>
+              </button>
+            </div>
 
+            {/* 9:16 Vertical Screen Container */}
             <div className="w-full max-w-[280px] aspect-[9/16] rounded-2xl overflow-hidden bg-black border border-white/10 shadow-2xl relative flex items-center justify-center">
-              {renderedVideo?.video_url ? (
-                <video
-                  src={renderedVideo.video_url}
-                  controls
-                  autoPlay
-                  loop
-                  className="w-full h-full object-cover"
-                />
+              {activeTab === 'preview' ? (
+                previewLoading ? (
+                  <div className="text-center p-6 space-y-3">
+                    <RefreshCw className="w-8 h-8 text-brand-400 animate-spin mx-auto" />
+                    <div className="text-xs text-slate-300">Composing typography...</div>
+                  </div>
+                ) : previewImageUrl ? (
+                  <img
+                    src={previewImageUrl}
+                    alt="Slide Preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center p-6 space-y-3">
+                    <Eye className="w-10 h-10 text-slate-600 mx-auto" />
+                    <div className="text-xs text-slate-400">Select a thought to preview</div>
+                  </div>
+                )
               ) : (
-                <div className="text-center p-6 space-y-3">
-                  <Film className="w-12 h-12 text-slate-600 mx-auto" />
-                  <div className="text-xs font-semibold text-slate-300">No Rendered Output</div>
-                  <p className="text-[11px] text-slate-500">
-                    Click "Render Animated Video" on the left to generate the real MP4 file.
-                  </p>
-                </div>
+                renderedVideo?.video_url ? (
+                  <video
+                    src={renderedVideo.video_url}
+                    controls
+                    autoPlay
+                    loop
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center p-6 space-y-3">
+                    <Film className="w-12 h-12 text-slate-600 mx-auto" />
+                    <div className="text-xs font-semibold text-slate-300">No Rendered Output</div>
+                    <p className="text-[11px] text-slate-500">
+                      Click "Render Animated Video" on the left to generate the real MP4 file.
+                    </p>
+                  </div>
+                )
               )}
             </div>
 
+            {/* Rendered Video Details & Action Buttons */}
             {renderedVideo && (
               <div className="w-full mt-6 space-y-3">
                 <div className="glass-card rounded-xl p-3 text-xs text-slate-300 space-y-1">
                   <div><strong>Storage Key:</strong> {renderedVideo.storage_key}</div>
-                  <div><strong>Resolution:</strong> {renderedVideo.width} × {renderedVideo.height}</div>
-                  <div><strong>Status:</strong> {renderedVideo.render_status}</div>
+                  <div><strong>Resolution:</strong> {renderedVideo.width} × {renderedVideo.height} (9:16 Vertical)</div>
+                  <div><strong>Duration:</strong> {renderedVideo.duration_seconds} seconds</div>
+                  <div className="flex items-center gap-1.5 text-emerald-400">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>H.264 & AAC Validated</span>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
                   <a
                     href={renderedVideo.video_url}
-                    download
+                    download={`thoughtflow_${renderedVideo.storage_key}`}
                     className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold flex items-center justify-center gap-1.5"
                   >
                     <Download className="w-4 h-4" />

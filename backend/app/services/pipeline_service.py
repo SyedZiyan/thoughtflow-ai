@@ -141,13 +141,15 @@ class PipelineService:
             job.current_stage = "video_rendering"
             db.commit()
 
-            render_res = video_renderer.render_animated_video(
+            render_res = await video_renderer.render_animated_video(
                 thought_id=thought.id,
                 thought_text=thought.text,
                 theme=thought.theme,
-                visual_theme=user_settings.visual_theme,
-                animation_style=user_settings.animation_style,
-                duration_seconds=user_settings.video_duration
+                visual_theme=user_settings.visual_theme or "gradient_purple",
+                animation_style=user_settings.animation_style or "smooth_zoom",
+                duration_seconds=user_settings.video_duration or 15,
+                narration_enabled=bool(user_settings.narration_enabled),
+                ambient_enabled=True
             )
 
             # Stage 7: Persist Video record
