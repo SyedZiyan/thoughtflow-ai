@@ -28,6 +28,9 @@ interface ThoughtFlowApi {
         @Body request: RenderVideoRequest
     ): VideoResponse
 
+    @POST("youtube/upload")
+    suspend fun publishVideo(@Body request: PublishRequest): Map<String, Any>
+
     @POST("automation/run")
     suspend fun runPipeline(): Map<String, Any>
 

@@ -111,8 +111,7 @@ fun StudioScreen(
                                     selectedTheme = th
                                     selectedTypo = th.defaultTypo
                                 }
-                                .padding(12.dp),
-                            contentAlignment = Alignment.SpaceBetween
+                                .padding(12.dp)
                         ) {
                             Column(modifier = Modifier.fillMaxSize()) {
                                 Row(

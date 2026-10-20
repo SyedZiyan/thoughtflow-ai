@@ -56,7 +56,7 @@ fun YouTubeScreen(
             videos = v
             if (v.isNotEmpty()) {
                 selectedVideoId = v.first().id
-                customTitle = v.first().thoughtText.take(45) + " #shorts #mindset"
+                customTitle = v.first().title.take(45) + " #shorts #mindset"
             }
         } }
     }
@@ -225,7 +225,7 @@ fun YouTubeScreen(
                                             )
                                             .clickable {
                                                 selectedVideoId = vid.id
-                                                customTitle = vid.thoughtText.take(45) + " #shorts #mindset"
+                                                customTitle = vid.title.take(45) + " #shorts #mindset"
                                             }
                                             .padding(12.dp),
                                         verticalAlignment = Alignment.CenterVertically,
@@ -233,14 +233,14 @@ fun YouTubeScreen(
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = vid.thoughtText,
+                                                text = vid.title,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontSize = 13.sp,
                                                 maxLines = 1,
                                                 color = TextPrimary
                                             )
                                             Text(
-                                                text = "${vid.visualTheme} • ${vid.durationSeconds}s",
+                                                text = "${vid.durationSeconds}s • ${vid.renderStatus}",
                                                 fontSize = 11.sp,
                                                 color = TextSecondary
                                             )

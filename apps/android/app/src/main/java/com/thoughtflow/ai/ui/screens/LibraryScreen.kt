@@ -98,10 +98,10 @@ fun LibraryScreen(
                             Spacer(modifier = Modifier.width(14.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(vid.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary, maxLines = 1)
-                                Text("${vid.durationSeconds}s • ${vid.renderStatus.capitalize()}", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(top = 2.dp))
+                                Text("${vid.durationSeconds}s • ${vid.renderStatus.replaceFirstChar { it.uppercase() }}", fontSize = 12.sp, color = TextSecondary, modifier = Modifier.padding(top = 2.dp))
                             }
                             Text(
-                                text = vid.uploadStatus.replace('_', ' ').capitalize(),
+                                text = vid.uploadStatus.replace('_', ' ').replaceFirstChar { it.uppercase() },
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (vid.uploadStatus == "published") MintGreenDark else CyanFab,

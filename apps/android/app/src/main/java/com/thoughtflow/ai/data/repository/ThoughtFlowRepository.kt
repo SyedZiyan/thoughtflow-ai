@@ -64,4 +64,13 @@ class ThoughtFlowRepository {
             emit(Result.failure(e))
         }
     }.flowOn(Dispatchers.IO)
+
+    fun publishVideo(req: PublishRequest): Flow<Result<Map<String, Any>>> = flow {
+        try {
+            val res = api.publishVideo(req)
+            emit(Result.success(res))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
 }

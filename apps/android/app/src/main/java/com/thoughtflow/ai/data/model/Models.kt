@@ -13,7 +13,14 @@ data class DashboardResponse(
     @SerializedName("youtube_connected") val youtubeConnected: Boolean = false,
     @SerializedName("upcoming_schedule") val upcomingSchedule: List<ScheduleItem> = emptyList(),
     @SerializedName("recent_activity") val recentActivity: List<ActivityItem> = emptyList(),
-    @SerializedName("latest_videos") val latestVideos: List<VideoResponse> = emptyList()
+    @SerializedName("latest_videos") val latestVideos: List<VideoResponse> = emptyList(),
+    @SerializedName("channel_stats") val channelStats: ChannelStats = ChannelStats()
+)
+
+data class ChannelStats(
+    @SerializedName("channel_title") val channelTitle: String = "ThoughtFlow Motivation Official",
+    @SerializedName("subscriber_count") val subscriberCount: Int = 1240,
+    @SerializedName("total_videos") val totalVideos: Int = 18
 )
 
 data class ScheduleItem(
@@ -77,6 +84,12 @@ data class RenderVideoRequest(
     @SerializedName("text_placement") val textPlacement: String = "center",
     @SerializedName("narration_enabled") val narrationEnabled: Boolean = false,
     @SerializedName("ambient_enabled") val ambientEnabled: Boolean = true
+)
+
+data class PublishRequest(
+    @SerializedName("video_id") val videoId: String,
+    val title: String,
+    val privacy: String = "public"
 )
 
 data class SettingsResponse(
