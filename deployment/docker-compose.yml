@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: thoughtflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: thoughtflow_user
+      POSTGRES_PASSWORD: thoughtflow_secure_password_2026
+      POSTGRES_DB: thoughtflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thoughtflow_user -d thoughtflow_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend API Server
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: thoughtflow-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://thoughtflow_user:thoughtflow_secure_password_2026@db:5432/thoughtflow_db
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - APP_SECRET_KEY=production_thoughtflow_jwt_secret_key_random_string_2026
+      - STORAGE_DIR=/app/storage
+      - VIDEO_STORAGE_DIR=/app/storage/videos
+      - TEMP_STORAGE_DIR=/app/storage/temp
+      - FFMPEG_PATH=ffmpeg
+      - FFPROBE_PATH=ffprobe
+      - AI_PROVIDER=mock
+      - YOUTUBE_UPLOAD_ENABLED=False
+    volumes:
+      - media_storage:/app/storage
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Dedicated Autonomous Python Worker
+  worker:
+    build:
+      context: ..
+      dockerfile: worker/Dockerfile
+    container_name: thoughtflow-worker
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://thoughtflow_user:thoughtflow_secure_password_2026@db:5432/thoughtflow_db
+      - ENVIRONMENT=production
+      - STORAGE_DIR=/app/storage
+      - VIDEO_STORAGE_DIR=/app/storage/videos
+      - TEMP_STORAGE_DIR=/app/storage/temp
+      - FFMPEG_PATH=ffmpeg
+      - FFPROBE_PATH=ffprobe
+      - AI_PROVIDER=mock
+    volumes:
+      - media_storage:/app/storage
+    depends_on:
+      backend:
+        condition: service_started
+      db:
+        condition: service_healthy
+
+  # Web Dashboard (Nginx)
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    container_name: thoughtflow-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  media_storage:

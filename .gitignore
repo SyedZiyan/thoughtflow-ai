@@ -1,0 +1,68 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Environment & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+client_secret*.json
+oauth_credentials.json
+
+# Build outputs
+apps/web/dist/
+apps/web/dist-ssr/
+apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
+*.tsbuildinfo
+
+# Media output & Storage
+storage/videos/*
+storage/temp/*
+!storage/videos/.gitkeep
+!storage/temp/.gitkeep
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
