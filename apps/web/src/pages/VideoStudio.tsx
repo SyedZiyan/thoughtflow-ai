@@ -25,12 +25,20 @@ import {
 import { api, Thought, VideoAsset } from '../api/client';
 
 const VISUAL_THEMES = [
-  { id: 'gradient_purple', name: 'Cosmic Purple', preview: 'from-purple-950 via-indigo-950 to-slate-950', accent: '#a878ff' },
-  { id: 'geometric_dark', name: 'Emerald Obsidian', preview: 'from-emerald-950 via-slate-900 to-black', accent: '#34d399' },
-  { id: 'nebula', name: 'Midnight Cyan', preview: 'from-blue-950 via-slate-900 to-slate-950', accent: '#38bdf8' },
-  { id: 'gold_luxury', name: 'Bronze Luxury', preview: 'from-amber-950 via-neutral-900 to-black', accent: '#fbbf24' },
-  { id: 'minimal_slate', name: 'Graphite Minimal', preview: 'from-slate-900 via-zinc-900 to-neutral-950', accent: '#94a3b8' },
-  { id: 'sunset_crimson', name: 'Sunset Crimson', preview: 'from-rose-950 via-stone-900 to-black', accent: '#f43f5e' }
+  { id: 'cozy_balcony', name: 'Cozy Sunset Balcony', tag: 'Ref 1', preview: 'from-amber-900 via-rose-950 to-slate-950', accent: '#f5c276', defaultTypo: 'poetic_script' },
+  { id: 'mountain_summit', name: 'Alpine Sunrise Summit', tag: 'Ref 2', preview: 'from-sky-900 via-indigo-950 to-slate-900', accent: '#ffffff', defaultTypo: 'bold_impact' },
+  { id: 'misty_forest', name: 'Misty Pine Forest', tag: 'Photo', preview: 'from-emerald-950 via-teal-950 to-slate-950', accent: '#34d399', defaultTypo: 'bold_impact' },
+  { id: 'ocean_sunset', name: 'Ocean Twilight Horizon', tag: 'Photo', preview: 'from-orange-950 via-purple-950 to-slate-950', accent: '#fb923c', defaultTypo: 'poetic_script' },
+  { id: 'starry_night', name: 'Cosmic Starry Night', tag: 'Photo', preview: 'from-indigo-950 via-slate-900 to-black', accent: '#a855f7', defaultTypo: 'poetic_script' },
+  { id: 'golden_lake', name: 'Reflective Golden Lake', tag: 'Photo', preview: 'from-amber-950 via-yellow-950 to-slate-950', accent: '#fbbf24', defaultTypo: 'poetic_script' },
+  { id: 'rainy_window', name: 'Rainy City Window', tag: 'Photo', preview: 'from-cyan-950 via-slate-900 to-black', accent: '#38bdf8', defaultTypo: 'poetic_script' },
+  { id: 'golden_desert', name: 'Golden Hour Dunes', tag: 'Photo', preview: 'from-yellow-900 via-amber-950 to-stone-950', accent: '#f59e0b', defaultTypo: 'bold_impact' },
+  { id: 'gradient_purple', name: 'Cosmic Purple (Grad)', tag: 'Grad', preview: 'from-purple-950 via-indigo-950 to-slate-950', accent: '#a878ff' },
+  { id: 'geometric_dark', name: 'Emerald Obsidian (Grad)', tag: 'Grad', preview: 'from-emerald-950 via-slate-900 to-black', accent: '#34d399' },
+  { id: 'nebula', name: 'Midnight Cyan (Grad)', tag: 'Grad', preview: 'from-blue-950 via-slate-900 to-slate-950', accent: '#38bdf8' },
+  { id: 'gold_luxury', name: 'Bronze Luxury (Grad)', tag: 'Grad', preview: 'from-amber-950 via-neutral-900 to-black', accent: '#fbbf24' },
+  { id: 'minimal_slate', name: 'Graphite Minimal (Grad)', tag: 'Grad', preview: 'from-slate-900 via-zinc-900 to-neutral-950', accent: '#94a3b8' },
+  { id: 'sunset_crimson', name: 'Sunset Crimson (Grad)', tag: 'Grad', preview: 'from-rose-950 via-stone-900 to-black', accent: '#f43f5e' }
 ];
 
 const ANIMATION_STYLES = [
@@ -41,8 +49,10 @@ const ANIMATION_STYLES = [
 ];
 
 const TYPOGRAPHY_OPTIONS = [
-  { id: 'modern_sans', name: 'Modern Sans', preview: 'Segoe UI / Arial', desc: 'Crisp, bold, punchy' },
+  { id: 'poetic_script', name: 'Poetic Script (Gold Cursive)', preview: 'Georgia & Monotype Script', desc: 'Warm gold cursive highlights & heart divider (Reference 1)' },
+  { id: 'bold_impact', name: 'Bold Impact (Thought of the Day)', preview: 'Impact Bold Uppercase', desc: 'Dramatic condensed uppercase with badge & subtitle (Reference 2)' },
   { id: 'editorial_serif', name: 'Editorial Serif', preview: 'Georgia / Times', desc: 'Literary, reflective elegance' },
+  { id: 'modern_sans', name: 'Modern Sans', preview: 'Segoe UI / Arial', desc: 'Crisp, bold, punchy' },
   { id: 'clean_mono', name: 'Clean Monospace', preview: 'Consolas / Mono', desc: 'Minimalist tech aesthetic' }
 ];
 
@@ -65,9 +75,9 @@ export const VideoStudio: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [selectedThoughtId, setSelectedThoughtId] = useState<string>('');
-  const [visualTheme, setVisualTheme] = useState('gradient_purple');
+  const [visualTheme, setVisualTheme] = useState('cozy_balcony');
   const [animationStyle, setAnimationStyle] = useState('smooth_zoom');
-  const [typography, setTypography] = useState('modern_sans');
+  const [typography, setTypography] = useState('poetic_script');
   const [textPlacement, setTextPlacement] = useState('center');
   const [duration, setDuration] = useState(15);
   const [narrationEnabled, setNarrationEnabled] = useState(false);
@@ -233,15 +243,26 @@ export const VideoStudio: React.FC = () => {
                   <button
                     key={vt.id}
                     type="button"
-                    onClick={() => setVisualTheme(vt.id)}
+                    onClick={() => {
+                      setVisualTheme(vt.id);
+                      if (vt.defaultTypo) {
+                        setTypography(vt.defaultTypo);
+                      }
+                    }}
                     className={`p-3 rounded-xl border text-left transition-all ${
                       visualTheme === vt.id
                         ? 'border-brand-500 bg-brand-600/20 shadow-sm shadow-brand-500/20'
                         : 'border-white/5 bg-white/5 hover:border-white/10'
                     }`}
                   >
-                    <div className={`h-8 rounded-lg bg-gradient-to-br ${vt.preview} border border-white/10 mb-2`} />
-                    <div className="text-xs font-semibold text-white">{vt.name}</div>
+                    <div className={`h-8 rounded-lg bg-gradient-to-br ${vt.preview} border border-white/10 mb-2 flex items-center justify-end px-2`}>
+                      {vt.tag && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/60 text-white/90 uppercase tracking-wider">
+                          {vt.tag}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs font-semibold text-white truncate">{vt.name}</div>
                   </button>
                 ))}
               </div>

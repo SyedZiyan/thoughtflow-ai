@@ -22,8 +22,82 @@ class VideoValidationError(Exception):
 
 class VideoRendererService:
     THEMES = {
+        "cozy_balcony": {
+            "name": "Cozy Balcony Sunset (Lantern & City)",
+            "bg_file": "user_balcony_sunset.jpg",
+            "fallback_bg": "cozy_sunset_balcony.jpg",
+            "accent": (245, 194, 118),
+            "glow": (245, 194, 118, 40),
+            "pill_bg": (32, 20, 14),
+            "pill_text": (254, 240, 199),
+            "default_typography": "poetic_script"
+        },
+        "mountain_summit": {
+            "name": "Alpine Mountain Sunrise (Peak Ridge)",
+            "bg_file": "user_mountain_hiker.jpg",
+            "fallback_bg": "mountain_ridge_sunrise.jpg",
+            "accent": (255, 255, 255),
+            "glow": (255, 255, 255, 30),
+            "pill_bg": (18, 24, 36),
+            "pill_text": (226, 232, 240),
+            "default_typography": "bold_impact"
+        },
+        "misty_forest": {
+            "name": "Misty Pine Forest",
+            "bg_file": "misty_forest.jpg",
+            "accent": (52, 211, 153),
+            "glow": (16, 185, 129, 30),
+            "pill_bg": (12, 34, 24),
+            "pill_text": (167, 243, 208),
+            "default_typography": "bold_impact"
+        },
+        "ocean_sunset": {
+            "name": "Ocean Twilight Horizon",
+            "bg_file": "ocean_sunset.jpg",
+            "accent": (251, 146, 60),
+            "glow": (249, 115, 22, 30),
+            "pill_bg": (36, 18, 24),
+            "pill_text": (254, 215, 170),
+            "default_typography": "poetic_script"
+        },
+        "starry_night": {
+            "name": "Cosmic Starry Night",
+            "bg_file": "starry_night_cabin.jpg",
+            "accent": (168, 120, 255),
+            "glow": (138, 75, 255, 35),
+            "pill_bg": (24, 14, 48),
+            "pill_text": (230, 215, 255),
+            "default_typography": "poetic_script"
+        },
+        "golden_lake": {
+            "name": "Reflective Golden Lake",
+            "bg_file": "fairy_lights_dusk.jpg",
+            "accent": (251, 191, 36),
+            "glow": (245, 158, 11, 30),
+            "pill_bg": (28, 24, 16),
+            "pill_text": (254, 243, 199),
+            "default_typography": "poetic_script"
+        },
+        "rainy_window": {
+            "name": "Rainy City Evening",
+            "bg_file": "rainy_window.jpg",
+            "accent": (56, 189, 248),
+            "glow": (14, 165, 233, 30),
+            "pill_bg": (16, 28, 48),
+            "pill_text": (186, 230, 253),
+            "default_typography": "poetic_script"
+        },
+        "golden_desert": {
+            "name": "Golden Hour Sand Dunes",
+            "bg_file": "golden_desert.jpg",
+            "accent": (251, 191, 36),
+            "glow": (245, 158, 11, 30),
+            "pill_bg": (38, 26, 12),
+            "pill_text": (254, 243, 199),
+            "default_typography": "bold_impact"
+        },
         "gradient_purple": {
-            "name": "Cosmic Purple",
+            "name": "Cosmic Purple (Gradient)",
             "top": (24, 10, 48),
             "mid": (48, 16, 92),
             "bottom": (10, 6, 22),
@@ -33,7 +107,7 @@ class VideoRendererService:
             "pill_text": (230, 215, 255)
         },
         "geometric_dark": {
-            "name": "Emerald Obsidian",
+            "name": "Emerald Obsidian (Gradient)",
             "top": (6, 24, 20),
             "mid": (12, 42, 34),
             "bottom": (4, 12, 10),
@@ -43,7 +117,7 @@ class VideoRendererService:
             "pill_text": (167, 243, 208)
         },
         "nebula": {
-            "name": "Midnight Cyan",
+            "name": "Midnight Cyan (Gradient)",
             "top": (8, 16, 40),
             "mid": (16, 36, 75),
             "bottom": (5, 8, 20),
@@ -53,7 +127,7 @@ class VideoRendererService:
             "pill_text": (186, 230, 253)
         },
         "gold_luxury": {
-            "name": "Bronze Luxury",
+            "name": "Bronze Luxury (Gradient)",
             "top": (32, 24, 12),
             "mid": (54, 38, 16),
             "bottom": (14, 10, 6),
@@ -63,7 +137,7 @@ class VideoRendererService:
             "pill_text": (254, 243, 199)
         },
         "minimal_slate": {
-            "name": "Graphite Minimal",
+            "name": "Graphite Minimal (Gradient)",
             "top": (20, 24, 32),
             "mid": (30, 36, 48),
             "bottom": (12, 14, 18),
@@ -73,7 +147,7 @@ class VideoRendererService:
             "pill_text": (226, 232, 240)
         },
         "sunset_crimson": {
-            "name": "Sunset Crimson",
+            "name": "Sunset Crimson (Gradient)",
             "top": (44, 12, 20),
             "mid": (72, 18, 30),
             "bottom": (18, 6, 10),
@@ -104,11 +178,18 @@ class VideoRendererService:
 
     def _get_font(self, size: int, typography: str = "modern_sans", bold: bool = False) -> ImageFont.ImageFont:
         """Loads TTF fonts based on typography style with fallback hierarchy"""
-        if typography == "editorial_serif":
+        if typography in ("editorial_serif", "poetic_script"):
             font_names = [
                 "georgiab.ttf" if bold else "georgia.ttf",
                 "timesbd.ttf" if bold else "times.ttf",
                 "palab.ttf" if bold else "pala.ttf"
+            ]
+        elif typography == "bold_impact":
+            font_names = [
+                "impact.ttf",
+                "trebucbd.ttf",
+                "arialbd.ttf",
+                "calibrib.ttf"
             ]
         elif typography == "clean_mono":
             font_names = [
@@ -137,6 +218,259 @@ class VideoRendererService:
             return ImageFont.load_default()
         except Exception:
             return None
+
+    def _get_script_font(self, size: int) -> ImageFont.ImageFont:
+        """Loads cursive script font for emotional highlight words (Image 1 aesthetic)"""
+        windows_font_dir = Path(os.environ.get("WINDIR", "C:\\Windows")) / "Fonts"
+        script_candidates = [
+            "MTCORSVA.TTF",
+            "Gabriola.ttf",
+            "georgiai.ttf",
+            "FRSCRIPT.TTF",
+            "BRUSHSCI.TTF",
+            "segoepr.ttf"
+        ]
+        for name in script_candidates:
+            p = windows_font_dir / name
+            if p.exists():
+                try:
+                    return ImageFont.truetype(str(p), size)
+                except Exception:
+                    pass
+        return self._get_font(size, typography="editorial_serif", bold=True)
+
+    def _create_base_canvas(self, visual_theme: str) -> Image.Image:
+        """Returns base 1080x1920 canvas using either photographic asset or gradient fallback"""
+        theme_cfg = self.THEMES.get(visual_theme, self.THEMES.get("cozy_balcony", {}))
+        bg_dir = Path(__file__).resolve().parent.parent / "assets" / "backgrounds"
+
+        bg_filename = theme_cfg.get("bg_file")
+        bg_path = bg_dir / bg_filename if bg_filename else None
+
+        if (not bg_path or not bg_path.exists()) and theme_cfg.get("fallback_bg"):
+            bg_path = bg_dir / theme_cfg["fallback_bg"]
+
+        if bg_path and bg_path.exists():
+            try:
+                base_img = Image.open(str(bg_path)).convert("RGB")
+                orig_w, orig_h = base_img.size
+                target_ratio = self.width / self.height
+                orig_ratio = orig_w / orig_h
+
+                if orig_ratio > target_ratio:
+                    new_w = int(orig_h * target_ratio)
+                    left = (orig_w - new_w) // 2
+                    base_img = base_img.crop((left, 0, left + new_w, orig_h))
+                else:
+                    new_h = int(orig_w / target_ratio)
+                    top = (orig_h - new_h) // 2
+                    base_img = base_img.crop((0, top, orig_w, top + new_h))
+
+                base_img = base_img.resize((self.width, self.height), Image.Resampling.LANCZOS)
+
+                # Atmospheric darkening scrim in upper and middle section where text resides
+                scrim = Image.new("RGBA", (self.width, self.height), (0, 0, 0, 0))
+                sdraw = ImageDraw.Draw(scrim)
+                scrim_limit = int(self.height * 0.55)
+                for y in range(scrim_limit):
+                    alpha = int(145 * (1.0 - (y / scrim_limit) ** 1.35))
+                    sdraw.line([(0, y), (self.width, y)], fill=(0, 0, 0, alpha))
+                base_img.paste(Image.alpha_composite(base_img.convert("RGBA"), scrim).convert("RGB"))
+                return base_img
+            except Exception as e:
+                logger.warning(f"Failed to load background {bg_path}: {e}, falling back to gradient.")
+
+        # Gradient fallback
+        img = Image.new("RGB", (self.width, self.height), (15, 15, 22))
+        draw = ImageDraw.Draw(img)
+        self._draw_gradient(draw, visual_theme)
+        self._draw_accents(img, draw, visual_theme)
+        return img
+
+    def _draw_vector_heart(self, draw: ImageDraw.ImageDraw, center_x: int, center_y: int, size: float = 16, color: Tuple = (245, 194, 118)):
+        points = []
+        for t in range(0, 360, 6):
+            rad = math.radians(t)
+            x = 16 * (math.sin(rad) ** 3)
+            y = -(13 * math.cos(rad) - 5 * math.cos(2 * rad) - 2 * math.cos(3 * rad) - math.cos(4 * rad))
+            px = center_x + x * (size / 16.0)
+            py = center_y + y * (size / 16.0)
+            points.append((px, py))
+        draw.polygon(points, fill=color)
+
+    def _render_poetic_script(self, thought_text: str, visual_theme: str = "cozy_balcony", theme: str = "motivation") -> Image.Image:
+        """
+        Image 1 Style: Cinematic Scenic Background + Poetic Serif + Golden Cursive Calligraphy Accents + Golden Heart Divider.
+        """
+        img = self._create_base_canvas(visual_theme)
+        draw = ImageDraw.Draw(img)
+
+        f_serif = self._get_font(52, typography="editorial_serif", bold=False)
+        f_script = self._get_script_font(68)
+
+        emphasis_keywords = {
+            "lost", "find", "becoming", "silence", "quiet", "strength", "peace",
+            "courage", "grow", "growth", "discipline", "unstoppable", "wisdom",
+            "dreams", "power", "greatness", "direction", "speed", "forward",
+            "begin", "mind", "today", "tomorrow", "standards", "freedom",
+            "energy", "focus", "flame", "unyielding", "roots", "fuel", "truth",
+            "clear", "storms", "destiny", "patience", "faith", "hope", "rise",
+            "light", "path", "proud", "calm", "soul", "heart", "glow"
+        }
+
+        # Handle explicit newlines or naturally wrap to ~860px max width
+        clean_text = thought_text.replace('"', '').replace("'", "'")
+        if "\n" in clean_text:
+            raw_lines = [l.strip() for l in clean_text.split("\n") if l.strip()]
+            lines_words = [l.split() for l in raw_lines]
+        else:
+            all_words = clean_text.split()
+            max_w = int(self.width * 0.82)
+            lines_words = []
+            curr_line = []
+            for w in all_words:
+                test_line = " ".join(curr_line + [w])
+                bbox = draw.textbbox((0, 0), test_line, font=f_serif)
+                if (bbox[2] - bbox[0]) > max_w and curr_line:
+                    lines_words.append(curr_line)
+                    curr_line = [w]
+                else:
+                    curr_line.append(w)
+            if curr_line:
+                lines_words.append(curr_line)
+
+        # Scale font if many lines
+        line_height = 80
+        if len(lines_words) > 3:
+            f_serif = self._get_font(44, typography="editorial_serif", bold=False)
+            f_script = self._get_script_font(58)
+            line_height = 68
+        elif len(lines_words) > 5:
+            f_serif = self._get_font(38, typography="editorial_serif", bold=False)
+            f_script = self._get_script_font(50)
+            line_height = 58
+
+        start_y = int(self.height * 0.20)
+        gold_color = (245, 194, 118)
+        white_color = (255, 255, 255)
+        shadow_color = (0, 0, 0, 200)
+
+        for idx, line_list in enumerate(lines_words):
+            y = start_y + (idx * line_height)
+
+            # Check if any word has emphasis or markdown asterisks
+            segments = []
+            for w in line_list:
+                is_asterisk = w.startswith("*") and w.endswith("*") and len(w) > 2
+                clean_w = w.strip(".,;:!?\"'*").lower()
+                is_emp = is_asterisk or (clean_w in emphasis_keywords)
+                display_w = w.strip("*") + " "
+                segments.append((display_w, is_emp))
+
+            has_emp = any(s[1] for s in segments)
+
+            if has_emp and len(line_list) >= 2:
+                # Measure combined widths for centered alignment
+                total_w = 0
+                seg_widths = []
+                for w_text, is_emp in segments:
+                    font = f_script if is_emp else f_serif
+                    bbox = draw.textbbox((0, 0), w_text, font=font)
+                    w = bbox[2] - bbox[0]
+                    seg_widths.append(w)
+                    total_w += w
+
+                curr_x = (self.width - total_w) // 2
+                for s_idx, (w_text, is_emp) in enumerate(segments):
+                    font = f_script if is_emp else f_serif
+                    color = gold_color if is_emp else white_color
+                    # Drop shadow
+                    draw.text((curr_x + 2, y + 3), w_text, font=font, fill=shadow_color)
+                    # Main text
+                    draw.text((curr_x, y), w_text, font=font, fill=color)
+                    curr_x += seg_widths[s_idx]
+            else:
+                line_str = " ".join([w.strip("*") for w in line_list])
+                draw.text((self.width // 2 + 2, y + 3), line_str, font=f_serif, fill=shadow_color, anchor="mm")
+                draw.text((self.width // 2, y), line_str, font=f_serif, fill=white_color, anchor="mm")
+
+        # Golden heart divider below quote
+        div_y = start_y + (len(lines_words) * line_height) + 36
+        draw.line([(self.width // 2 - 140, div_y + 2), (self.width // 2 - 32, div_y + 2)], fill=(0, 0, 0, 160), width=2)
+        draw.line([(self.width // 2 + 32, div_y + 2), (self.width // 2 + 140, div_y + 2)], fill=(0, 0, 0, 160), width=2)
+        self._draw_vector_heart(draw, self.width // 2 + 2, div_y + 2, size=15, color=(0, 0, 0, 160))
+
+        draw.line([(self.width // 2 - 140, div_y), (self.width // 2 - 32, div_y)], fill=gold_color, width=2)
+        draw.line([(self.width // 2 + 32, div_y), (self.width // 2 + 140, div_y)], fill=gold_color, width=2)
+        self._draw_vector_heart(draw, self.width // 2, div_y, size=15, color=gold_color)
+
+        return img
+
+    def _render_bold_impact(self, thought_text: str, visual_theme: str = "mountain_summit", theme: str = "motivation") -> Image.Image:
+        """
+        Image 2 Style: Dramatic Scenic Mountain Landscape + "THOUGHT OF THE DAY" Header + Bold Uppercase Condensed Typography with Drop Shadow + Subtitle + Footer.
+        """
+        img = self._create_base_canvas(visual_theme)
+        draw = ImageDraw.Draw(img)
+
+        f_tag = self._get_font(30, typography="modern_sans", bold=True)
+        f_impact = self._get_font(72, typography="bold_impact", bold=True)
+        f_sub = self._get_font(34, typography="modern_sans", bold=True)
+        f_footer = self._get_font(26, typography="modern_sans", bold=False)
+
+        # 1. Header: THOUGHT OF THE DAY
+        header_text = "THOUGHT OF THE DAY"
+        header_y = int(self.height * 0.125)
+        draw.text((self.width // 2 + 2, header_y + 2), header_text, font=f_tag, fill=(0, 0, 0, 190), anchor="mm")
+        draw.text((self.width // 2, header_y), header_text, font=f_tag, fill=(235, 240, 250), anchor="mm")
+
+        # 2. Main Quote: Condensed uppercase impact text
+        clean_text = thought_text.replace('"', '').upper()
+        if "\n" in clean_text:
+            lines = [l.strip() for l in clean_text.split("\n") if l.strip()]
+        else:
+            words = clean_text.split()
+            max_w = int(self.width * 0.82)
+            lines = []
+            curr = []
+            for w in words:
+                test = " ".join(curr + [w])
+                bbox = draw.textbbox((0, 0), test, font=f_impact)
+                if (bbox[2] - bbox[0]) > max_w and curr:
+                    lines.append(" ".join(curr))
+                    curr = [w]
+                else:
+                    curr.append(w)
+            if curr:
+                lines.append(" ".join(curr))
+
+        # Dynamically scale if lengthy
+        line_h = 92
+        if len(lines) > 3:
+            f_impact = self._get_font(56, typography="bold_impact", bold=True)
+            line_h = 76
+        elif len(lines) > 5:
+            f_impact = self._get_font(44, typography="bold_impact", bold=True)
+            line_h = 62
+
+        start_y = int(self.height * 0.19)
+        for idx, line in enumerate(lines):
+            y = start_y + (idx * line_h)
+            # Deep drop shadow
+            draw.text((self.width // 2 + 4, y + 4), line, font=f_impact, fill=(0, 0, 0, 220), anchor="mm")
+            draw.text((self.width // 2, y), line, font=f_impact, fill=(255, 255, 255), anchor="mm")
+
+        # 3. Subtitle
+        sub_y = start_y + (len(lines) * line_h) + 42
+        sub_text = "KEEP MOVING FORWARD."
+        draw.text((self.width // 2 + 2, sub_y + 2), sub_text, font=f_sub, fill=(0, 0, 0, 190), anchor="mm")
+        draw.text((self.width // 2, sub_y), sub_text, font=f_sub, fill=(245, 248, 255), anchor="mm")
+
+        # 4. Footer & Sparkle
+        draw.text((self.width // 2, int(self.height * 0.93)), "- ANONYMOUS -", font=f_footer, fill=(185, 195, 215), anchor="mm")
+        draw.text((int(self.width * 0.91), int(self.height * 0.96)), "✦", font=f_footer, fill=(225, 235, 250), anchor="mm")
+
+        return img
 
     def _draw_gradient(self, draw: ImageDraw.ImageDraw, theme: str):
         """Render high quality vertical background gradient based on theme"""
@@ -234,12 +568,35 @@ class VideoRendererService:
         self,
         thought_text: str,
         theme: str = "motivation",
-        visual_theme: str = "gradient_purple",
-        typography: str = "modern_sans",
+        visual_theme: str = "cozy_balcony",
+        typography: str = "poetic_script",
         text_placement: str = "center",
         category_tag: Optional[str] = None
     ) -> Image.Image:
         """Compose the primary 1080x1920 slide for preview and video compilation"""
+        # 1. Image 1 Aesthetic: Poetic Script
+        if typography == "poetic_script" or (
+            visual_theme in ("cozy_balcony", "fairy_lights", "rainy_window", "golden_lake")
+            and typography not in ("bold_impact", "clean_mono")
+        ):
+            return self._render_poetic_script(thought_text, visual_theme=visual_theme, theme=theme)
+
+        # 2. Image 2 Aesthetic: Bold Impact
+        if typography == "bold_impact" or (
+            visual_theme in ("mountain_summit", "golden_desert")
+            and typography not in ("poetic_script", "editorial_serif")
+        ):
+            return self._render_bold_impact(thought_text, visual_theme=visual_theme, theme=theme)
+
+        # 3. If photographic background is selected with another typography
+        theme_cfg = self.THEMES.get(visual_theme, {})
+        if "bg_file" in theme_cfg:
+            if typography in ("editorial_serif", "poetic_script"):
+                return self._render_poetic_script(thought_text, visual_theme=visual_theme, theme=theme)
+            else:
+                return self._render_bold_impact(thought_text, visual_theme=visual_theme, theme=theme)
+
+        # 4. Standard Gradient Fallback (Cosmic Purple, Emerald Obsidian, Midnight Cyan, etc.)
         theme_cfg = self.THEMES.get(visual_theme, self.THEMES["gradient_purple"])
         img = Image.new("RGB", (self.width, self.height), (15, 15, 22))
         draw = ImageDraw.Draw(img)

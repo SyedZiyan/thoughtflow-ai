@@ -12,12 +12,16 @@ import {
 import { mobileApi } from '../src/api/mobileClient';
 
 const THEMES = [
-  { id: 'midnight_violet', label: 'Midnight Violet', color: '#a767f7' },
-  { id: 'obsidian_gold', label: 'Obsidian Gold', color: '#eab308' },
-  { id: 'emerald_depths', label: 'Emerald Depths', color: '#10b981' },
-  { id: 'crimson_dark', label: 'Crimson Dark', color: '#ef4444' },
-  { id: 'royal_indigo', label: 'Royal Indigo', color: '#6366f1' },
-  { id: 'deep_ocean', label: 'Deep Ocean', color: '#06b6d4' }
+  { id: 'cozy_balcony', label: 'Cozy Sunset Balcony (Ref 1)', color: '#f5c276' },
+  { id: 'mountain_summit', label: 'Alpine Sunrise Summit (Ref 2)', color: '#60a5fa' },
+  { id: 'misty_forest', label: 'Misty Pine Forest', color: '#34d399' },
+  { id: 'ocean_sunset', label: 'Ocean Twilight', color: '#fb923c' },
+  { id: 'starry_night', label: 'Cosmic Starry Night', color: '#a855f7' },
+  { id: 'golden_lake', label: 'Reflective Lake', color: '#fbbf24' },
+  { id: 'rainy_window', label: 'Rainy Window', color: '#38bdf8' },
+  { id: 'golden_desert', label: 'Golden Dunes', color: '#f59e0b' },
+  { id: 'gradient_purple', label: 'Cosmic Purple (Grad)', color: '#a878ff' },
+  { id: 'geometric_dark', label: 'Emerald Obsidian (Grad)', color: '#10b981' }
 ];
 
 const DURATIONS = [15, 30, 45, 60];
@@ -26,7 +30,7 @@ export default function MobileVideoStudio() {
   const [loading, setLoading] = useState(true);
   const [thoughts, setThoughts] = useState<any[]>([]);
   const [selectedThoughtId, setSelectedThoughtId] = useState<string>('');
-  const [selectedTheme, setSelectedTheme] = useState('midnight_violet');
+  const [selectedTheme, setSelectedTheme] = useState('cozy_balcony');
   const [selectedDuration, setSelectedDuration] = useState(15);
   const [narrationEnabled, setNarrationEnabled] = useState(true);
   const [ambientEnabled, setAmbientEnabled] = useState(true);

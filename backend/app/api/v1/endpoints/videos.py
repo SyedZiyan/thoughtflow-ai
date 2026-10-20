@@ -32,8 +32,10 @@ def get_video_styles():
             {"id": "gentle_drift", "name": "Gentle Diagonal Drift", "desc": "Slow diagonal panning motion"}
         ],
         "typography_options": [
-            {"id": "modern_sans", "name": "Modern Sans (Segoe UI / Arial)", "style": "Clean, bold, punchy"},
+            {"id": "poetic_script", "name": "Poetic Script (Warm Gold Cursive)", "style": "Cozy Balcony & Golden Cursive (Reference 1)"},
+            {"id": "bold_impact", "name": "Bold Impact (Thought of the Day)", "style": "Dramatic Sunrise Summit (Reference 2)"},
             {"id": "editorial_serif", "name": "Editorial Serif (Georgia)", "style": "Literary, classical elegance"},
+            {"id": "modern_sans", "name": "Modern Sans (Segoe UI / Arial)", "style": "Clean, bold, punchy"},
             {"id": "clean_mono", "name": "Clean Monospace (Consolas)", "style": "Minimalist, tech aesthetic"}
         ],
         "text_placements": [
