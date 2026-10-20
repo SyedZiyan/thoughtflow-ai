@@ -8,17 +8,47 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Youtube
+  Youtube,
+  Globe
 } from 'lucide-react';
-import { api, DashboardMetrics } from '../api/client';
+import { api, DashboardMetrics, UserSettings, VideoAsset } from '../api/client';
 
 export const PublishingCalendar: React.FC = () => {
-  const { data: dashboard, isLoading } = useQuery<DashboardMetrics>({
+  const { data: dashboard } = useQuery<DashboardMetrics>({
     queryKey: ['dashboard'],
     queryFn: api.getDashboard,
   });
 
-  const [currentDate] = useState(new Date());
+  const { data: settings } = useQuery<UserSettings>({
+    queryKey: ['settings'],
+    queryFn: api.getSettings,
+  });
+
+  const { data: videos } = useQuery<VideoAsset[]>({
+    queryKey: ['videos'],
+    queryFn: () => api.getVideos(),
+  });
+
+  const userTimezone = settings?.timezone || 'UTC';
+  const publishingTime = settings?.publishing_time || '07:00';
+  const themesPool = (settings?.selected_themes && settings.selected_themes.length > 0)
+    ? settings.selected_themes
+    : ['discipline', 'motivation', 'consistency', 'resilience', 'success', 'mindfulness'];
+
+  // Map real video dates
+  const videoDateMap = new Map<string, VideoAsset>();
+  const videoList = Array.isArray(videos) ? videos : [];
+  videoList.forEach((v) => {
+    if (v.published_at) {
+      const d = v.published_at.split('T')[0];
+      videoDateMap.set(d, v);
+    } else if (v.created_at) {
+      const d = v.created_at.split('T')[0];
+      if (!videoDateMap.has(d)) {
+        videoDateMap.set(d, v);
+      }
+    }
+  });
 
   // Generate 14 days calendar preview
   const days = Array.from({ length: 14 }).map((_, i) => {
@@ -28,10 +58,15 @@ export const PublishingCalendar: React.FC = () => {
     const isToday = i === 2;
     const isPast = i < 2;
 
-    const themes = ['discipline', 'motivation', 'consistency', 'resilience', 'success', 'mindfulness'];
-    const themePick = themes[i % themes.length];
+    const matchedVideo = videoDateMap.get(dateStr);
+    const themePick = themesPool[i % themesPool.length];
 
-    let status = isPast ? 'published' : (isToday ? 'in_progress' : 'scheduled');
+    let status = 'scheduled';
+    if (matchedVideo?.upload_status === 'published' || isPast) {
+      status = 'published';
+    } else if (isToday) {
+      status = matchedVideo ? 'rendered' : 'in_progress';
+    }
 
     return {
       date: dateStr,
@@ -40,9 +75,10 @@ export const PublishingCalendar: React.FC = () => {
       month: d.toLocaleDateString('en-US', { month: 'short' }),
       theme: themePick,
       status,
-      time: '09:00 UTC',
+      time: `${publishingTime} ${userTimezone}`,
       isToday,
-      isPast
+      isPast,
+      video: matchedVideo
     };
   });
 
@@ -52,13 +88,18 @@ export const PublishingCalendar: React.FC = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Publishing Calendar</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Visual publishing schedule for daily YouTube Shorts automation. All times rendered in UTC.
+            Visual publishing schedule for daily YouTube Shorts automation. Synchronized with creator timezone.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300 font-mono">
-            Timezone: UTC (Auto-converted)
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-500/10 border border-brand-500/20 text-xs text-brand-300 font-mono">
+            <Globe className="w-3.5 h-3.5" />
+            <span>Timezone: {userTimezone}</span>
+          </span>
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300 font-mono">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Slot: {publishingTime}</span>
           </span>
         </div>
       </div>
@@ -108,10 +149,10 @@ export const PublishingCalendar: React.FC = () => {
 
               <div className="space-y-1.5 mt-3 pt-3 border-t border-white/5">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-brand-300 capitalize truncate">
-                  {d.theme}
+                  #{d.theme}
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-slate-400">
-                  <span>{d.time}</span>
+                  <span className="truncate">{d.time}</span>
                   <span className={`px-1.5 py-0.5 rounded font-semibold capitalize ${
                     d.status === 'published'
                       ? 'bg-emerald-500/20 text-emerald-300'

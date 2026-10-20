@@ -116,17 +116,47 @@ export default function DashboardScreen() {
       {/* Quick Nav Links */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Management</Text>
-        <View style={styles.actionRow}>
+        <View style={styles.actionGrid}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/studio')}
+          >
+            <Text style={styles.actionIcon}>🎬</Text>
+            <Text style={styles.secondaryButtonText}>Video Studio</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/youtube')}
+          >
+            <Text style={styles.actionIcon}>📺</Text>
+            <Text style={styles.secondaryButtonText}>YouTube Channel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/automation')}
+          >
+            <Text style={styles.actionIcon}>⚙️</Text>
+            <Text style={styles.secondaryButtonText}>Automation</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/calendar')}
+          >
+            <Text style={styles.actionIcon}>📅</Text>
+            <Text style={styles.secondaryButtonText}>Calendar</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryButton}
             onPress={() => router.push('/analytics')}
           >
-            <Text style={styles.secondaryButtonText}>View Analytics</Text>
+            <Text style={styles.actionIcon}>📊</Text>
+            <Text style={styles.secondaryButtonText}>Analytics</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryButton}
             onPress={() => router.push('/logs')}
           >
+            <Text style={styles.actionIcon}>📋</Text>
             <Text style={styles.secondaryButtonText}>Execution Logs</Text>
           </TouchableOpacity>
         </View>
@@ -174,15 +204,18 @@ const styles = StyleSheet.create({
   statSub: { color: '#64748b', fontSize: 10, marginTop: 4 },
   section: { marginTop: 10 },
   sectionTitle: { color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginBottom: 12 },
-  actionRow: { flexDirection: 'row', gap: 12 },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  actionIcon: { fontSize: 20, marginBottom: 4 },
   secondaryButton: {
-    flex: 1,
+    width: '48%',
     backgroundColor: '#1a1e2c',
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  secondaryButtonText: { color: '#cbd5e1', fontSize: 12, fontWeight: '600' },
+  secondaryButtonText: { color: '#cbd5e1', fontSize: 12, fontWeight: '600', textAlign: 'center' },
 });

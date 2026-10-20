@@ -15,6 +15,10 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="studio" options={{ title: 'Video Studio' }} />
+        <Stack.Screen name="youtube" options={{ title: 'YouTube Channel' }} />
+        <Stack.Screen name="automation" options={{ title: 'Automation Monitor' }} />
+        <Stack.Screen name="calendar" options={{ title: 'Publishing Calendar' }} />
         <Stack.Screen name="login" options={{ title: 'Creator Login' }} />
         <Stack.Screen name="analytics" options={{ title: 'Channel Analytics' }} />
         <Stack.Screen name="logs" options={{ title: 'Execution Logs' }} />

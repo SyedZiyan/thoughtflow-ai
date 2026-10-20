@@ -61,6 +61,10 @@ export const mobileApi = {
       body: JSON.stringify(payload),
     }),
   runPipeline: () => mobileRequest<any>('/automation/run', { method: 'POST', body: JSON.stringify({}) }),
+  getAutomationStatus: () => mobileRequest<any>('/automation/status'),
+  getAutomationJobs: () => mobileRequest<any[]>('/automation/jobs'),
+  retryAutomationJob: (jobId: string) =>
+    mobileRequest<any>(`/automation/jobs/${jobId}/retry`, { method: 'POST' }),
   getSettings: () => mobileRequest<any>('/settings'),
   updateSettings: (payload: any) =>
     mobileRequest<any>('/settings', {
@@ -68,6 +72,14 @@ export const mobileApi = {
       body: JSON.stringify(payload),
     }),
   getYouTubeStatus: () => mobileRequest<any>('/youtube/status'),
+  getYouTubeAuthUrl: () => mobileRequest<{ auth_url: string }>('/youtube/auth-url'),
+  disconnectYouTube: () => mobileRequest<any>('/youtube/disconnect', { method: 'POST' }),
+  syncYouTubeMetrics: () => mobileRequest<any>('/youtube/sync-metrics', { method: 'POST' }),
+  uploadVideoToYouTube: (videoId: string, title?: string, description?: string) =>
+    mobileRequest<any>(`/youtube/upload/${videoId}`, {
+      method: 'POST',
+      body: JSON.stringify({ title, description }),
+    }),
   getAnalytics: () => mobileRequest<any>('/analytics'),
   getLogs: () => mobileRequest<any[]>('/logs'),
 };
