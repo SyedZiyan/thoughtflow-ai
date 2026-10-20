@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
-// Android Emulator connects to host machine via 10.0.2.2; physical device uses LAN IP
-const DEFAULT_HOST = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+// Default to your host machine's LAN IP so physical Android phones and emulators connect seamlessly
+const DEFAULT_HOST = Platform.OS === 'web' ? 'http://localhost:8000' : 'http://192.168.0.101:8000';
 let API_HOST = DEFAULT_HOST;
 
 export const setApiHost = (host: string) => {
