@@ -59,6 +59,10 @@ storage/videos/*
 storage/temp/*
 !storage/videos/.gitkeep
 !storage/temp/.gitkeep
+storage/worker_heartbeat.json
+*.db
+*.sqlite
+*.sqlite3
 
 # IDE & OS
 .vscode/

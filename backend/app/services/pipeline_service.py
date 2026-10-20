@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -269,3 +269,36 @@ class PipelineService:
             db.commit()
 
             raise
+
+    @classmethod
+    def reclaim_stuck_jobs(cls, db: Session, max_age_minutes: int = 30) -> int:
+        """
+        Detects and recovers jobs stuck in intermediate states (generating, rendering, uploading)
+        due to sudden worker crashes or process kills.
+        """
+        threshold = datetime.now(timezone.utc) - timedelta(minutes=max_age_minutes)
+        stuck_jobs = (
+            db.query(Job)
+            .filter(
+                Job.status.in_(["generating", "rendering", "validating", "uploading"]),
+                Job.started_at < threshold
+            )
+            .all()
+        )
+        reclaimed_count = 0
+        for job in stuck_jobs:
+            logger.warning(f"Reclaiming stuck job {job.id} (status: {job.status}, stage: {job.current_stage})")
+            if job.attempts < job.max_attempts:
+                job.status = "pending"
+                job.error_message = f"Reclaimed after worker stall in stage '{job.current_stage}'. Ready for retry."
+            else:
+                job.status = "failed"
+                job.error_message = f"Job stalled and exceeded max attempts ({job.max_attempts}) in stage '{job.current_stage}'."
+            job.finished_at = datetime.now(timezone.utc)
+            reclaimed_count += 1
+
+        if reclaimed_count > 0:
+            db.commit()
+            logger.info(f"Successfully reclaimed {reclaimed_count} stuck jobs.")
+        return reclaimed_count
+
