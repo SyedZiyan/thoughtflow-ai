@@ -1,10 +1,18 @@
 package com.thoughtflow.ai.data.api
 
 import com.thoughtflow.ai.data.model.*
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
 interface ThoughtFlowApi {
+
+    @GET("app/version")
+    suspend fun getAppVersion(): AppVersionInfo
+
+    @Streaming
+    @GET("app/download")
+    suspend fun downloadApk(): ResponseBody
 
     @GET("dashboard")
     suspend fun getDashboard(): DashboardResponse

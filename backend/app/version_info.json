@@ -1,0 +1,6 @@
+{
+  "version_name": "1.0.1",
+  "version_code": 2,
+  "release_notes": "Added In-App OTA Auto-Updater, 9:16 Shorts Player & YouTube Shorts Studio",
+  "download_url": "/api/v1/app/download"
+}

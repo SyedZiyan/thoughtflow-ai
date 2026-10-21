@@ -119,3 +119,11 @@ data class YouTubeConnectResponse(
     val configured: Boolean = false,
     val message: String? = null
 )
+
+data class AppVersionInfo(
+    @SerializedName("version_name") val versionName: String = "1.0.0",
+    @SerializedName("version_code") val versionCode: Int = 1,
+    @SerializedName("release_notes") val releaseNotes: String = "",
+    @SerializedName("download_url") val downloadUrl: String = "/api/v1/app/download",
+    @SerializedName("file_size_mb") val fileSizeMb: Double = 0.0
+)

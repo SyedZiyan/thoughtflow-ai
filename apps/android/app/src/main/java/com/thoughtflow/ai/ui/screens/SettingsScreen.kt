@@ -11,8 +11,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.thoughtflow.ai.data.api.ApiClient
 import com.thoughtflow.ai.data.model.YouTubeStatusResponse
 import com.thoughtflow.ai.data.repository.ThoughtFlowRepository
+import com.thoughtflow.ai.data.updater.AppUpdateManager
 import com.thoughtflow.ai.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -39,6 +42,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { ThoughtFlowRepository() }
+    val updateState by AppUpdateManager.updateState.collectAsState()
 
     var serverHost by remember { mutableStateOf(ApiClient.getHost()) }
     var isTestingConnection by remember { mutableStateOf(false) }
@@ -430,7 +434,218 @@ fun SettingsScreen(
                 }
             }
 
-            // 4. System Info
+            // 4. Over-The-Air (OTA) Updates & Releases
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White)
+                        .padding(20.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(MintGreenLight),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.SystemUpdate,
+                                        contentDescription = null,
+                                        tint = MintGreenPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "In-App Updates (OTA)",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = TextPrimary
+                                    )
+                                    Text(
+                                        text = "Installed: v${updateState.installedVersionName} (Build ${updateState.installedVersionCode})",
+                                        fontSize = 11.sp,
+                                        color = TextSecondary
+                                    )
+                                }
+                            }
+
+                            // Status badge
+                            val badgeText = when {
+                                updateState.isChecking -> "Checking..."
+                                updateState.isDownloading -> "${updateState.downloadProgress}%"
+                                updateState.isUpdateAvailable -> "Update Ready"
+                                else -> "Up to date"
+                            }
+                            val badgeColor = when {
+                                updateState.isUpdateAvailable -> MintGreenPrimary
+                                updateState.isDownloading -> MintGreenLight
+                                else -> Color(0xFFF1F5F9)
+                            }
+                            val badgeTextColor = when {
+                                updateState.isUpdateAvailable -> Color(0xFF0F172A)
+                                else -> TextPrimary
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(badgeColor)
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = badgeText,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = badgeTextColor
+                                )
+                            }
+                        }
+
+                        // Update Details if available
+                        if (updateState.isUpdateAvailable && updateState.latestVersionInfo != null) {
+                            val info = updateState.latestVersionInfo!!
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Color(0xFF0F172A))
+                                    .padding(14.dp)
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "🚀 New Version: v${info.versionName}",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = Color.White
+                                        )
+                                        Text(
+                                            text = "${info.fileSizeMb} MB",
+                                            fontSize = 12.sp,
+                                            color = MintGreenLight,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    if (info.releaseNotes.isNotBlank()) {
+                                        Text(
+                                            text = info.releaseNotes,
+                                            fontSize = 12.sp,
+                                            color = Color(0xFFCBD5E1),
+                                            lineHeight = 16.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Downloading Progress Bar
+                        if (updateState.isDownloading) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Downloading APK update package...",
+                                        fontSize = 12.sp,
+                                        color = TextSecondary
+                                    )
+                                    Text(
+                                        text = "${updateState.downloadProgress}%",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MintGreenDark
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                LinearProgressIndicator(
+                                    progress = { updateState.downloadProgress / 100f },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = MintGreenPrimary,
+                                    trackColor = Color(0xFFE2E8F0)
+                                )
+                            }
+                        }
+
+                        // Action Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        AppUpdateManager.checkForUpdates(context, silent = false)
+                                        Toast.makeText(
+                                            context,
+                                            updateState.statusMessage ?: "Checked for updates",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(22.dp),
+                                enabled = !updateState.isChecking && !updateState.isDownloading
+                            ) {
+                                if (updateState.isChecking) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                                } else {
+                                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Check Now", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                }
+                            }
+
+                            if (updateState.isUpdateAvailable) {
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            AppUpdateManager.downloadAndInstall(context)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .weight(1.3f)
+                                        .height(44.dp),
+                                    shape = RoundedCornerShape(22.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MintGreenPrimary),
+                                    enabled = !updateState.isDownloading
+                                ) {
+                                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (updateState.isReadyToInstall) "Install Now" else "Update Now",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 5. System Info
             item {
                 Box(
                     modifier = Modifier

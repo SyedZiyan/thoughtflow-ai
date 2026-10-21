@@ -23,11 +23,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.thoughtflow.ai.data.updater.AppUpdateManager
 import com.thoughtflow.ai.ui.components.AiSuggestionCard
 import com.thoughtflow.ai.ui.components.HeroSmartCard
+import com.thoughtflow.ai.ui.components.UpdateAvailableCard
 import com.thoughtflow.ai.ui.theme.*
 import com.thoughtflow.ai.viewmodel.DashboardUiState
 import com.thoughtflow.ai.viewmodel.DashboardViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun DashboardScreen(
@@ -38,7 +41,14 @@ fun DashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
+    val updateState by AppUpdateManager.updateState.collectAsState()
+
+    // Automatically check for over-the-air updates when dashboard loads
+    LaunchedEffect(Unit) {
+        AppUpdateManager.checkForUpdates(context, silent = true)
+    }
 
     Scaffold(
         containerColor = BackgroundCanvas,
@@ -105,7 +115,24 @@ fun DashboardScreen(
                         .size(42.dp)
                         .clip(CircleShape)
                         .background(Color.White)
-                        .clickable { },
+                        .clickable {
+                            if (updateState.isUpdateAvailable) {
+                                Toast.makeText(
+                                    context,
+                                    "Update v${updateState.latestVersionInfo?.versionName} is ready to install!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                scope.launch {
+                                    AppUpdateManager.checkForUpdates(context, silent = false)
+                                    Toast.makeText(
+                                        context,
+                                        updateState.statusMessage ?: "App is up to date!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -114,6 +141,16 @@ fun DashboardScreen(
                         tint = TextPrimary,
                         modifier = Modifier.size(20.dp)
                     )
+                    if (updateState.isUpdateAvailable) {
+                        Box(
+                            modifier = Modifier
+                                .size(9.dp)
+                                .align(Alignment.TopEnd)
+                                .offset(x = (-8).dp, y = 8.dp)
+                                .clip(CircleShape)
+                                .background(MintGreenPrimary)
+                        )
+                    }
                 }
             }
 
@@ -165,6 +202,23 @@ fun DashboardScreen(
                         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 120.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // In-App OTA Update Banner (Shows if newer version exists on server)
+                        if (updateState.isUpdateAvailable && !updateState.isDismissed) {
+                            item {
+                                UpdateAvailableCard(
+                                    updateState = updateState,
+                                    onUpdateClick = {
+                                        scope.launch {
+                                            AppUpdateManager.downloadAndInstall(context)
+                                        }
+                                    },
+                                    onDismissClick = {
+                                        AppUpdateManager.dismissUpdateBanner()
+                                    }
+                                )
+                            }
+                        }
+
                         // Hero Smart Card (From Reference Image 3)
                         item {
                             HeroSmartCard(

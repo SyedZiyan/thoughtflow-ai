@@ -165,11 +165,22 @@ def download_latest_apk():
 def get_app_version():
     """Returns metadata about the latest compiled APK on the server"""
     apk_path = Path(__file__).resolve().parent.parent.parent / "apps" / "android" / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
-    file_size_mb = round(apk_path.stat().st_size / (1024 * 1024), 1) if apk_path.exists() else 17.1
+    file_size_mb = round(apk_path.stat().st_size / (1024 * 1024), 1) if apk_path.exists() else 16.3
+    
+    version_file = Path(__file__).resolve().parent / "version_info.json"
+    if version_file.exists():
+        try:
+            with open(version_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                data["file_size_mb"] = file_size_mb
+                return data
+        except Exception:
+            pass
+
     return {
         "version_name": "1.0.1",
         "version_code": 2,
-        "release_notes": "Added Content Library Video Player and YouTube Shorts integration",
+        "release_notes": "Added In-App OTA Auto-Updater, 9:16 Shorts Player & YouTube Shorts Studio",
         "download_url": "/api/v1/app/download",
         "file_size_mb": file_size_mb
     }
