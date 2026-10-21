@@ -1,52 +1,45 @@
-# ThoughtFlow AI — AI-Powered Daily Thought Generation, Animated YouTube Shorts Automation & Mobile App
+# ThoughtFlow AI — Autonomous AI Wisdom, Animated YouTube Shorts & Android App
 
-ThoughtFlow AI is a production-minded creator automation platform that generates original motivational wisdom every day, transforms thoughts into high-impact animated vertical videos (9:16 1080x1920 MP4), and publishes them automatically to YouTube Shorts.
+ThoughtFlow AI is a production creator automation platform that generates original motivational wisdom, transforms thoughts into high-impact animated vertical videos (9:16 1080x1920 MP4), and publishes them automatically to YouTube Shorts.
+
+It includes a native Android mobile application with an in-app 9:16 Shorts video player, local offline cache, and an In-App Over-The-Air (OTA) Auto-Updater.
 
 ---
 
-## Architecture
+## 🏛️ Architecture
 
 ```
 thoughtflow-ai/
 ├── apps/
-│   ├── web/               # React 18, Vite, TypeScript, Tailwind CSS, TanStack Query
-│   └── mobile/            # React Native, Expo 51, TypeScript, Expo Router
+│   ├── android/        # Native Android App (Kotlin, Jetpack Compose, Material 3, In-App Shorts Player, OTA Updater)
+│   └── web/            # Creator Web Dashboard (React 18, Vite, TypeScript, Tailwind CSS, TanStack Query)
 ├── backend/
 │   ├── app/
-│   │   ├── api/v1/        # Versioned REST endpoints (Dashboard, Thoughts, Videos, YouTube, Automation)
-│   │   ├── core/          # Pydantic v2 settings, Fernet token encryption & JWT auth
-│   │   ├── db/            # SQLAlchemy database engine and session
-│   │   ├── models/        # User, Thought, Video, Job, Settings, Integration, ActivityLog
-│   │   ├── schemas/       # Typed Pydantic request/response schemas
-│   │   ├── services/      # AI generator, VideoRenderer (Pillow+FFmpeg), YouTube Data API v3
-│   │   └── prompts/       # Structured system prompts and theme catalogs
-│   ├── tests/             # Pytest unit & integration test suites
+│   │   ├── api/v1/     # REST Endpoints (Dashboard, Thoughts, Videos, YouTube Shorts, Settings, OTA Distribution)
+│   │   ├── core/       # Pydantic v2 settings, Fernet token encryption & JWT auth
+│   │   ├── db/         # SQLAlchemy database engine and session
+│   │   ├── models/     # User, Thought, Video, Job, Settings, Integration, ActivityLog
+│   │   ├── schemas/    # Typed Pydantic request/response schemas
+│   │   ├── services/   # AI Provider, VideoRenderer (Pillow + FFmpeg), YouTube Data API v3, AudioService
+│   │   └── prompts/    # Structured wisdom prompts & theme catalogs
+│   ├── tests/          # Pytest unit & integration test suites
 │   ├── requirements.txt
+│   ├── Procfile
 │   └── Dockerfile
 ├── worker/
-│   ├── scheduler.py       # Standalone APScheduler daily automation worker
+│   ├── scheduler.py    # Standalone APScheduler daily automation worker (07:00 AM wisdom, 09:00 AM upload)
 │   └── Dockerfile
-├── shared/
-│   └── api-contracts/     # TypeScript contracts shared across Web and Mobile
-├── deployment/
-│   ├── docker-compose.yml # PostgreSQL, FastAPI, Worker, and Nginx Web services
-│   └── deployment.md      # Deployment guide & zero-cost INR breakdown
-└── storage/
-    └── videos/            # Rendered vertical 9:16 MP4 assets
+├── storage/
+│   └── videos/         # Rendered vertical 9:16 MP4 assets
+├── docker-compose.yml  # Local multi-container development orchestration
+├── render.yaml         # 24/7 Cloud deployment blueprint (Render / Railway / Fly.io)
+├── publish_update.bat  # 1-Click Over-The-Air (OTA) APK release publisher
+└── publish_update.ps1
 ```
 
 ---
 
-## Prerequisites
-
-- **Python**: 3.11+ (Tested on Python 3.14)
-- **Node.js**: v20+ (Tested on Node.js v24.20 LTS with npm 11.19)
-- **FFmpeg**: v6.0+ (Tested on FFmpeg v9.0.1 Essentials with `ffmpeg` and `ffprobe` in PATH)
-- **Operating System**: Windows (PowerShell commands included), macOS, or Linux
-
----
-
-## Quickstart & Local Development
+## 🚀 Quickstart & Local Development
 
 ### 1. Environment Configuration
 Copy the configuration template:
@@ -61,14 +54,11 @@ cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
-
-Run database initialization and start the FastAPI server:
-```powershell
-uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 8000
 ```
 - API Swagger Documentation: `http://localhost:8000/docs`
 - Health check: `http://localhost:8000/health`
+- Mobile APK Download Landing Page: `http://localhost:8000/download`
 
 ### 3. Web Dashboard Setup
 Open a new terminal:
@@ -77,76 +67,48 @@ cd apps/web
 npm install
 npm run dev
 ```
-Open `http://localhost:5173` to access the ThoughtFlow AI creator dashboard.
+Open `http://localhost:5173` to access the ThoughtFlow AI web dashboard.
 
-### 4. Standalone Automation Worker
-Open a new terminal to start the background daily worker:
+### 4. Native Android Application
+Open `apps/android` in **Android Studio** or compile directly via command line:
 ```powershell
-cd worker
-..\backend\.venv\Scripts\python.exe scheduler.py
+cd apps/android
+.\gradlew.bat assembleDebug
 ```
-
-### 5. Android Mobile Application
+Deploy to a connected phone or emulator:
 ```powershell
-cd apps/mobile
-npm install
-npx expo start
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
-- **Android Emulator**: Press `a` in the Expo terminal.
-- **Physical Device**: Install **Expo Go** from Google Play Store and scan the QR code.
-- Ensure your phone and PC are connected to the same Wi-Fi network and set the server IP in the app Settings tab.
 
 ---
 
-## Running Automated Tests
+## 📲 In-App Over-The-Air (OTA) Updates
 
-### Backend Unit & Integration Tests (12 Test Cases)
+ThoughtFlow AI includes a seamless OTA update system:
+- When a new APK is compiled, any installed phone will automatically display an **"Update Available"** banner.
+- Tapping **"Update Now"** downloads and installs the new build in-place on the phone without needing USB cables or computer connection.
+
+To publish an update:
+```powershell
+.\publish_update.bat
+```
+
+---
+
+## ☁️ 24/7 Cloud Deployment
+
+The backend is fully configured for zero-cost 24/7 hosting on Render or Railway using [`render.yaml`](./render.yaml) and [`backend/Procfile`](./backend/Procfile):
+1. Push your repository to GitHub.
+2. Link the repository to [Render](https://render.com) or [Railway](https://railway.app).
+3. In the mobile app's **Profile & Settings**, tap the **"Cloud 24/7 Server"** chip and save.
+
+Your scheduled morning Shorts will publish autonomously 365 days a year even while your laptop is turned off!
+
+---
+
+## 🧪 Running Automated Tests
+
 ```powershell
 cd backend
 .\.venv\Scripts\pytest.exe tests -v
 ```
-
-### Rendering a Real Test Video Locally
-```powershell
-cd backend
-.\.venv\Scripts\python.exe tests/test_render_manual.py
-```
-This generates an animated 1080x1920 MP4 in `storage/videos/thought_test_sample_01.mp4`.
-
-### Building Web Production Bundle
-```powershell
-cd apps/web
-npm run build
-```
-
----
-
-## YouTube Data API v3 & Google OAuth 2.0 Setup
-
-1. Open [Google Cloud Console](https://console.cloud.google.com).
-2. Enable **YouTube Data API v3**.
-3. Create an **OAuth 2.0 Client ID (Web Application)**.
-4. Set Authorized Redirect URI: `http://localhost:8000/api/v1/youtube/callback`.
-5. Add your credentials to `.env`:
-   ```env
-   GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com
-   GOOGLE_CLIENT_SECRET=your_client_secret
-   GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/youtube/callback
-   YOUTUBE_UPLOAD_ENABLED=True
-   ```
-6. Navigate to **YouTube Channel** in the dashboard and click **Connect via Google OAuth**.
-
----
-
-## Production Deployment with Docker Compose
-
-Launch PostgreSQL, FastAPI, the autonomous worker, and the Nginx web app:
-```powershell
-cd deployment
-docker compose up -d --build
-```
-Verify running containers:
-```powershell
-docker compose ps
-```
-See `deployment/deployment.md` for zero-cost hosting configurations and monthly cost calculations in INR.

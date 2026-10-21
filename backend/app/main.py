@@ -1,9 +1,11 @@
 import os
+import json
 import shutil
 from pathlib import Path
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, HTMLResponse
 from app.core.config import settings
 from app.db.session import engine, Base, SessionLocal
 from app.api.v1.api import api_router
@@ -39,9 +41,6 @@ app.add_middleware(
 video_dir = Path(settings.VIDEO_STORAGE_DIR)
 video_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/storage/videos", StaticFiles(directory=str(video_dir)), name="videos")
-
-from fastapi.responses import FileResponse, HTMLResponse
-from fastapi import HTTPException
 
 # Include API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)

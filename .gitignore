@@ -49,9 +49,6 @@ oauth_credentials.json
 # Build outputs
 apps/web/dist/
 apps/web/dist-ssr/
-apps/mobile/.expo/
-apps/mobile/android/
-apps/mobile/ios/
 *.tsbuildinfo
 
 # Media output & Storage
