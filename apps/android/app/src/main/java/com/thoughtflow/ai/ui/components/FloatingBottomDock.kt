@@ -116,7 +116,7 @@ fun FloatingBottomDock(
                         onClick = { onTabSelected("dashboard") }
                     )
                     DockTabItem(
-                        icon = Icons.Outlined.AccountBalanceWallet,
+                        icon = Icons.Outlined.VideoLibrary,
                         selected = currentTab == "library",
                         onClick = { onTabSelected("library") }
                     )
@@ -132,9 +132,9 @@ fun FloatingBottomDock(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     DockTabItem(
-                        icon = Icons.Outlined.Notifications,
+                        icon = Icons.Outlined.SmartDisplay,
                         selected = currentTab == "activity",
-                        hasBadge = true,
+                        hasBadge = false,
                         onClick = { onTabSelected("activity") }
                     )
                     DockTabItem(

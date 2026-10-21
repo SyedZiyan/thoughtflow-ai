@@ -20,6 +20,60 @@ def connect_youtube(
     res = youtube_service.get_auth_url(state=f"user_{current_user.id}")
     return res
 
+@router.post("/simulate-connect", response_model=YouTubeStatusResponse)
+def simulate_youtube_connection(
+    channel_name: Optional[str] = Query(default="ThoughtFlow Motivation Official"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Connects or simulates a connected YouTube channel for testing and instant preview"""
+    integration = (
+        db.query(Integration)
+        .filter(Integration.user_id == current_user.id, Integration.provider == "youtube")
+        .first()
+    )
+    if not integration:
+        integration = Integration(
+            user_id=current_user.id,
+            provider="youtube"
+        )
+        db.add(integration)
+
+    integration.encrypted_credentials = "demo_connected_credentials"
+    integration.connection_status = "connected"
+    integration.channel_id = "UC_THOUGHTFLOW_OFFICIAL"
+    integration.channel_title = channel_name or "ThoughtFlow Motivation Official"
+    integration.channel_metadata = {
+        "subscriber_count": 1240,
+        "video_count": 18,
+        "view_count": 48200,
+        "channel_thumbnail": "https://picsum.photos/seed/thoughtflow_yt/120/120"
+    }
+    integration.connected_at = datetime.now(timezone.utc)
+
+    log = ActivityLog(
+        user_id=current_user.id,
+        event_type="youtube_connected",
+        message=f"Connected YouTube channel: {integration.channel_title}",
+        log_metadata={"channel_title": integration.channel_title}
+    )
+    db.add(log)
+    db.commit()
+
+    return YouTubeStatusResponse(
+        connected=True,
+        channel_id=integration.channel_id,
+        channel_title=integration.channel_title,
+        channel_thumbnail="https://picsum.photos/seed/thoughtflow_yt/120/120",
+        subscriber_count=1240,
+        video_count=18,
+        view_count=48200,
+        connected_at=integration.connected_at,
+        upload_enabled=True,
+        dry_run_mode=False
+    )
+
+
 @router.get("/callback")
 def youtube_callback(
     code: str,

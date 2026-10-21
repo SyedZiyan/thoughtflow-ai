@@ -20,6 +20,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application source
 COPY . .
 
+# Ensure storage directories exist
+RUN mkdir -p storage/videos storage/temp
+
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Support dynamic PORT environment variable (Render, Railway, Fly.io, Heroku)
+CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

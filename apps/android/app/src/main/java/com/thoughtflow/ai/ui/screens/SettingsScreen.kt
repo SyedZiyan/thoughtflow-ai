@@ -48,6 +48,8 @@ fun SettingsScreen(
 
     var youtubeStatus by remember { mutableStateOf<YouTubeStatusResponse?>(null) }
     var isConnectingYouTube by remember { mutableStateOf(false) }
+    var showConnectDialog by remember { mutableStateOf(false) }
+    var showOAuthConfigNotice by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         repository.getYouTubeStatus().collect { res ->
@@ -181,6 +183,9 @@ fun SettingsScreen(
                                             res.onSuccess {
                                                 youtubeStatus = YouTubeStatusResponse(connected = false)
                                                 Toast.makeText(context, "YouTube channel disconnected", Toast.LENGTH_SHORT).show()
+                                            }.onFailure {
+                                                youtubeStatus = YouTubeStatusResponse(connected = false)
+                                                Toast.makeText(context, "YouTube channel disconnected", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     }
@@ -205,26 +210,7 @@ fun SettingsScreen(
 
                             Button(
                                 onClick = {
-                                    isConnectingYouTube = true
-                                    scope.launch {
-                                        repository.connectYouTube().collect { res ->
-                                            isConnectingYouTube = false
-                                            res.onSuccess { conn ->
-                                                if (conn.authUrl != null && conn.configured) {
-                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(conn.authUrl))
-                                                    context.startActivity(intent)
-                                                } else {
-                                                    Toast.makeText(
-                                                        context,
-                                                        "YouTube OAuth endpoint ready! In local test mode, dry-run upload simulation is active.",
-                                                        Toast.LENGTH_LONG
-                                                    ).show()
-                                                }
-                                            }.onFailure {
-                                                Toast.makeText(context, "Connection status: ${it.message}", Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                    }
+                                    showConnectDialog = true
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -276,11 +262,35 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = serverHost == "http://192.168.0.101:8000",
+                                onClick = {
+                                    serverHost = "http://192.168.0.101:8000"
+                                    ApiClient.setHost(serverHost)
+                                },
+                                label = { Text("PC Wi-Fi (Local)") }
+                            )
+                            FilterChip(
+                                selected = serverHost.contains("onrender.com") || serverHost.contains("railway"),
+                                onClick = {
+                                    serverHost = "https://thoughtflow-api.onrender.com"
+                                    ApiClient.setHost(serverHost)
+                                },
+                                label = { Text("Cloud 24/7 Server") }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         OutlinedTextField(
                             value = serverHost,
                             onValueChange = { serverHost = it },
-                            label = { Text("Host Address (IP:Port)") },
-                            placeholder = { Text("http://192.168.0.101:8000") },
+                            label = { Text("Host Address (IP or Cloud URL)") },
+                            placeholder = { Text("https://your-app.onrender.com") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
                             singleLine = true
@@ -325,17 +335,35 @@ fun SettingsScreen(
                                     Text("Test & Save", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                                 }
                             }
+                        }
 
-                            OutlinedButton(
-                                onClick = {
-                                    serverHost = "http://10.0.2.2:8000"
-                                    ApiClient.setHost(serverHost)
-                                },
-                                modifier = Modifier.height(46.dp),
-                                shape = RoundedCornerShape(23.dp)
-                            ) {
-                                Text("Emulator IP", fontSize = 12.sp)
+                        // Offline Cache Status
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFF8FAFC))
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("⚡", fontSize = 14.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Offline Cache Active",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
                             }
+                            Text(
+                                "${com.thoughtflow.ai.data.local.LocalCacheManager.getCachedThoughtCount()} Thoughts • ${com.thoughtflow.ai.data.local.LocalCacheManager.getCachedVideoCount()} Videos",
+                                fontSize = 11.sp,
+                                color = MintGreenDark,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
 
                         if (connectionStatus != null) {
@@ -422,5 +450,158 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (showConnectDialog) {
+        AlertDialog(
+            onDismissRequest = { showConnectDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFE4E6)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("▶", color = Color(0xFFE50914), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Connect YouTube", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        "Choose how you want to connect your YouTube channel for publishing:",
+                        fontSize = 13.sp,
+                        color = TextSecondary,
+                        lineHeight = 18.sp
+                    )
+
+                    // Option 1: Official Google OAuth
+                    Card(
+                        onClick = {
+                            isConnectingYouTube = true
+                            showConnectDialog = false
+                            scope.launch {
+                                repository.connectYouTube().collect { res ->
+                                    isConnectingYouTube = false
+                                    res.onSuccess { conn ->
+                                        if (conn.authUrl != null && conn.configured) {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(conn.authUrl))
+                                            context.startActivity(intent)
+                                        } else {
+                                            showOAuthConfigNotice = true
+                                        }
+                                    }.onFailure {
+                                        Toast.makeText(context, "Connection failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = BackgroundCanvas)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🌐", fontSize = 22.sp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Sign In with Google", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                                Text("Link your real YouTube account via OAuth", fontSize = 11.sp, color = TextSecondary)
+                            }
+                        }
+                    }
+
+                    // Option 2: Test Demo Channel
+                    Card(
+                        onClick = {
+                            isConnectingYouTube = true
+                            showConnectDialog = false
+                            scope.launch {
+                                repository.simulateYouTubeConnect().collect { simRes ->
+                                    isConnectingYouTube = false
+                                    simRes.onSuccess { status ->
+                                        youtubeStatus = status
+                                        Toast.makeText(context, "Connected to demo channel: ${status.channelTitle}", Toast.LENGTH_SHORT).show()
+                                    }.onFailure {
+                                        Toast.makeText(context, "Demo connection failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🧪", fontSize = 22.sp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Connect Demo Channel", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MintGreenDark)
+                                Text("Simulated channel for app testing", fontSize = 11.sp, color = TextSecondary)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showConnectDialog = false }) {
+                    Text("Cancel", color = TextSecondary)
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    if (showOAuthConfigNotice) {
+        AlertDialog(
+            onDismissRequest = { showOAuthConfigNotice = false },
+            title = { Text("Google OAuth Credentials Needed", fontWeight = FontWeight.Bold, fontSize = 17.sp) },
+            text = {
+                Text(
+                    "To link a real Google account, GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in the backend .env file.\n\nYou can use the Demo Channel option to test all YouTube Shorts features right now without API credentials.",
+                    fontSize = 13.sp,
+                    color = TextSecondary,
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showOAuthConfigNotice = false
+                        isConnectingYouTube = true
+                        scope.launch {
+                            repository.simulateYouTubeConnect().collect { simRes ->
+                                isConnectingYouTube = false
+                                simRes.onSuccess { status ->
+                                    youtubeStatus = status
+                                    Toast.makeText(context, "Connected to demo channel: ${status.channelTitle}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MintGreenDark)
+                ) {
+                    Text("Use Demo Channel")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showOAuthConfigNotice = false }) {
+                    Text("Dismiss", color = TextSecondary)
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(20.dp)
+        )
     }
 }

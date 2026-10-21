@@ -16,15 +16,28 @@ object ApiClient {
                 || Build.MODEL.contains("Emulator")
                 || Build.MODEL.contains("Android SDK built for x86"))
 
-    // Defaults to your PC Wi-Fi IP address so physical phones connect immediately!
-    private var currentHost = if (isEmulator) "http://10.0.2.2:8000" else "http://192.168.0.101:8000"
+    // Defaults to your PC Wi-Fi IP address or saved custom/cloud host
+    private var currentHost: String? = null
 
-    fun getBaseUrl(): String = "$currentHost/api/v1/"
+    fun getBaseUrl(): String = "${getHost()}/api/v1/"
 
-    fun getHost(): String = currentHost
+    fun getHost(): String {
+        if (currentHost == null) {
+            val saved = com.thoughtflow.ai.data.local.LocalCacheManager.getSavedHost()
+            currentHost = if (!saved.isNullOrEmpty()) {
+                saved
+            } else if (isEmulator) {
+                "http://10.0.2.2:8000"
+            } else {
+                "http://192.168.0.101:8000"
+            }
+        }
+        return currentHost!!
+    }
 
     fun setHost(newHost: String) {
         currentHost = newHost.trimEnd('/')
+        com.thoughtflow.ai.data.local.LocalCacheManager.saveServerHost(currentHost!!)
         instance = null
     }
 

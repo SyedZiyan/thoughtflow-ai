@@ -109,6 +109,7 @@ data class YouTubeStatusResponse(
     @SerializedName("channel_thumbnail") val channelThumbnail: String? = null,
     @SerializedName("subscriber_count") val subscriberCount: Int? = null,
     @SerializedName("video_count") val videoCount: Int? = null,
+    @SerializedName("view_count") val viewCount: Int? = null,
     @SerializedName("upload_enabled") val uploadEnabled: Boolean = false,
     @SerializedName("dry_run_mode") val dryRunMode: Boolean = true
 )

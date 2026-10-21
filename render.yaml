@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: thoughtflow-api
+    env: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: AI_PROVIDER
+        value: template
+      - key: YOUTUBE_UPLOAD_ENABLED
+        value: "false"
+      - key: CORS_ORIGINS
+        value: "*"

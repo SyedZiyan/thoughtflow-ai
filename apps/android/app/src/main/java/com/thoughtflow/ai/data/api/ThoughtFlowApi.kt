@@ -37,6 +37,11 @@ interface ThoughtFlowApi {
     @POST("youtube/connect")
     suspend fun connectYouTube(): YouTubeConnectResponse
 
+    @POST("youtube/simulate-connect")
+    suspend fun simulateYouTubeConnect(
+        @Query("channel_name") channelName: String? = null
+    ): YouTubeStatusResponse
+
     @POST("youtube/disconnect")
     suspend fun disconnectYouTube(): Map<String, Any>
 

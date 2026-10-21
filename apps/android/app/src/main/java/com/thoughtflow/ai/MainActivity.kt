@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.thoughtflow.ai.data.local.LocalCacheManager
 import com.thoughtflow.ai.ui.components.FloatingBottomDock
 import com.thoughtflow.ai.ui.screens.*
 import com.thoughtflow.ai.ui.theme.ThoughtFlowTheme
@@ -23,6 +24,7 @@ import com.thoughtflow.ai.ui.theme.ThoughtFlowTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LocalCacheManager.init(applicationContext)
         setContent {
             ThoughtFlowTheme {
                 MainAppScreen()
@@ -105,7 +107,7 @@ fun MainAppScreen() {
 
             composable("library") {
                 LibraryScreen(
-                    onVideoSelected = {
+                    onNavigateToPublish = {
                         navController.navigate("youtube")
                     }
                 )
