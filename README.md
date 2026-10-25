@@ -28,13 +28,16 @@ The platform includes a **Native Android Mobile App** (Kotlin + Jetpack Compose)
 Captured directly from physical hardware:
 
 <p align="center">
-  <img src="docs/assets/real_dashboard.png" width="46%" alt="Live Dashboard on Device" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/assets/real_quote_generator.png" width="46%" alt="Procedural Canvas on Device" />
+  <img src="docs/assets/real_dashboard.png" width="31%" alt="Live Dashboard on Device" />
+  &nbsp;&nbsp;
+  <img src="docs/assets/real_quote_generator.png" width="31%" alt="Procedural Canvas on Device" />
+  &nbsp;&nbsp;
+  <img src="docs/assets/real_settings.png" width="31%" alt="Profile & Settings on Device" />
 </p>
 
 - **Left (Dashboard)**: Clean Obsidian Studio dark palette, dynamic user greeting, "Today's Thought" hero card, daily status counters, and instant generation controls.
-- **Right (Dynamic Quote Canvas)**: Procedural theme randomizer, photographic city skyline backdrop, torn sticker note with highlighted keywords, and instant 1080p Gallery export.
+- **Center (Dynamic Quote Canvas)**: Procedural theme randomizer, photographic city skyline backdrop, torn sticker note with highlighted keywords, and instant 1080p Gallery export.
+- **Right (Profile & Settings)**: Integrated creator account, linked YouTube channel (`@its-Zynk`), automation scheduler, dark luxury theme, and direct support.
 
 ---
 
