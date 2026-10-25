@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Refresh
@@ -38,6 +39,7 @@ import com.thoughtflow.ai.ui.components.VideoPlayerView
 import com.thoughtflow.ai.ui.components.bounceClick
 import com.thoughtflow.ai.ui.theme.*
 import com.thoughtflow.ai.util.PhotoExportUtil
+import com.thoughtflow.ai.util.VideoExportUtil
 import kotlinx.coroutines.launch
 
 /**
@@ -185,10 +187,75 @@ fun StudioScreen(
                     showControls = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(420.dp)
+                        .height(400.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .border(1.dp, CardBorder, RoundedCornerShape(20.dp))
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Action Buttons right below Video Player: Direct 1-Tap Upload to YouTube Shorts & Save Video
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Method 1: Upload directly to official YouTube Shorts App
+                    Box(
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFFEF4444), Color(0xFFDC2626))
+                                )
+                            )
+                            .bounceClick(scaleDown = 0.95f, onClick = {
+                                scope.launch {
+                                    VideoExportUtil.uploadToYouTubeShorts(
+                                        context = context,
+                                        videoPathOrUrl = renderedVideoUrl!!,
+                                        quoteText = currentThoughtText,
+                                        author = LocalCacheManager.getUserName()
+                                    )
+                                }
+                            }),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Videocam, contentDescription = null, tint = TextWhite, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("🎬 Upload to Shorts", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                        }
+                    }
+
+                    // Save to Gallery
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(CardSurface)
+                            .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                            .bounceClick(scaleDown = 0.95f, onClick = {
+                                scope.launch {
+                                    val uri = VideoExportUtil.saveVideoToGallery(context, renderedVideoUrl!!)
+                                    if (uri != null) {
+                                        Toast.makeText(context, "Saved to Gallery (Movies/ThoughtFlow)!", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        Toast.makeText(context, "Could not save video to gallery", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Download, contentDescription = null, tint = TextWhite, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Save MP4", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextWhite)
+                        }
+                    }
+                }
             } else {
                 Box(
                     modifier = Modifier
@@ -556,60 +623,122 @@ fun StudioScreen(
 
             Spacer(modifier = Modifier.height(26.dp))
 
-            // 8. Clean Tactile "Render Video" Button
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+            // 8. Action Buttons
+            if (renderedVideoUrl != null) {
+                // Primary: 1-Tap Upload Directly to YouTube Shorts
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFFEF4444), Color(0xFFDC2626))
+                            )
                         )
-                    )
-                    .bounceClick(scaleDown = 0.96f, onClick = {
-                        isRendering = true
-                        scope.launch {
-                            try {
-                                repository.renderVideo(
-                                    RenderVideoRequest(
-                                        thoughtId = currentThoughtId,
-                                        durationSeconds = selectedDuration,
-                                        visualTheme = currentDynamicStyle.assetFilename.substringBefore("."),
-                                        typography = selectedTypography,
-                                        narrationEnabled = narrationEnabled,
-                                        ambientEnabled = musicEnabled
-                                    )
-                                ).collect { res ->
-                                    isRendering = false
-                                    res.onSuccess {
-                                        renderedVideoUrl = it.videoUrl
-                                        Toast.makeText(context, "Rendered '${it.title}'! Playing video short.", Toast.LENGTH_LONG).show()
-                                    }.onFailure {
-                                        renderedVideoUrl = "/storage/videos/thought_phase3_test_01.mp4"
-                                        Toast.makeText(context, "Generated 9:16 video short preview ready!", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                isRendering = false
-                                Toast.makeText(context, "Generated 9:16 video short preview ready!", Toast.LENGTH_SHORT).show()
+                        .bounceClick(scaleDown = 0.96f, onClick = {
+                            scope.launch {
+                                VideoExportUtil.uploadToYouTubeShorts(
+                                    context = context,
+                                    videoPathOrUrl = renderedVideoUrl!!,
+                                    quoteText = currentThoughtText,
+                                    author = LocalCacheManager.getUserName()
+                                )
                             }
-                        }
-                    }),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isRendering) {
-                    CircularProgressIndicator(color = TextWhite, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                } else {
+                        }),
+                    contentAlignment = Alignment.Center
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Videocam, contentDescription = null, tint = TextWhite, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Videocam, contentDescription = null, tint = TextWhite, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Render 9:16 Video Short",
-                            fontSize = 14.5.sp,
+                            text = "🎬 Upload Directly to YouTube Shorts",
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextWhite
                         )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Secondary: Render Another Short
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(CardSurface)
+                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                        .bounceClick(scaleDown = 0.96f, onClick = {
+                            renderedVideoUrl = null
+                            doShuffleThought()
+                        }),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Render Another Short",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextWhite
+                    )
+                }
+            } else {
+                // Clean Tactile "Render Video" Button
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+                            )
+                        )
+                        .bounceClick(scaleDown = 0.96f, onClick = {
+                            isRendering = true
+                            scope.launch {
+                                try {
+                                    repository.renderVideo(
+                                        RenderVideoRequest(
+                                            thoughtId = currentThoughtId,
+                                            durationSeconds = selectedDuration,
+                                            visualTheme = currentDynamicStyle.assetFilename.substringBefore("."),
+                                            typography = selectedTypography,
+                                            narrationEnabled = narrationEnabled,
+                                            ambientEnabled = musicEnabled
+                                        )
+                                    ).collect { res ->
+                                        isRendering = false
+                                        res.onSuccess {
+                                            renderedVideoUrl = it.videoUrl
+                                            Toast.makeText(context, "Rendered '${it.title}'! Ready to upload.", Toast.LENGTH_LONG).show()
+                                        }.onFailure {
+                                            renderedVideoUrl = "/storage/videos/thought_phase3_test_01.mp4"
+                                            Toast.makeText(context, "Generated 9:16 video short preview ready!", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    isRendering = false
+                                    Toast.makeText(context, "Generated 9:16 video short preview ready!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isRendering) {
+                        CircularProgressIndicator(color = TextWhite, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Videocam, contentDescription = null, tint = TextWhite, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Render 9:16 Video Short",
+                                fontSize = 14.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextWhite
+                            )
+                        }
                     }
                 }
             }

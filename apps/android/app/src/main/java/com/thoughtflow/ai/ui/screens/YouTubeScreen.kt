@@ -42,6 +42,7 @@ import com.thoughtflow.ai.data.model.YouTubeStatusResponse
 import com.thoughtflow.ai.data.repository.ThoughtFlowRepository
 import com.thoughtflow.ai.ui.components.bounceClick
 import com.thoughtflow.ai.ui.theme.*
+import com.thoughtflow.ai.util.VideoExportUtil
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -511,6 +512,7 @@ fun YouTubeScreen(
 
                             Spacer(modifier = Modifier.height(18.dp))
 
+                            // 1-Tap Direct to YouTube App (Method 1: Zero Setup)
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -518,9 +520,44 @@ fun YouTubeScreen(
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(
                                         Brush.horizontalGradient(
-                                            listOf(PurplePrimary, PurpleDark)
+                                            listOf(Color(0xFFEF4444), Color(0xFFDC2626))
                                         )
                                     )
+                                    .bounceClick(scaleDown = 0.96f, onClick = {
+                                        val sel = videos.find { it.id == selectedVideoId }
+                                        if (sel != null) {
+                                            scope.launch {
+                                                VideoExportUtil.uploadToYouTubeShorts(
+                                                    context = context,
+                                                    videoPathOrUrl = sel.videoUrl,
+                                                    quoteText = sel.title,
+                                                    author = "@its-Zynk"
+                                                )
+                                            }
+                                        } else {
+                                            Toast.makeText(context, "Please select a video to upload", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "🎬 1-Tap: Upload via YouTube App",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = TextWhite
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Background Cloud API Upload (Method 2)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(46.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(CardSurface)
+                                    .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
                                     .bounceClick(scaleDown = 0.96f, onClick = {
                                         if (selectedVideoId != null && !isPublishing) {
                                             isPublishing = true
@@ -550,13 +587,13 @@ fun YouTubeScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (isPublishing) {
-                                    CircularProgressIndicator(color = TextWhite, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                    CircularProgressIndicator(color = TextWhite, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                                 } else {
                                     Text(
-                                        text = "Upload Selected Short",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 15.sp,
-                                        color = TextWhite
+                                        text = "Cloud Auto-Publish",
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = 13.5.sp,
+                                        color = TextSecondary
                                     )
                                 }
                             }
