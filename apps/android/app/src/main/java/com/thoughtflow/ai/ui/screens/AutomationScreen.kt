@@ -299,7 +299,7 @@ private fun SettingSwitchRow(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1A1432), Color(0xFF120E25))
+                    colors = listOf(CardSurfaceElevated, CardSurface)
                 )
             )
             .border(1.dp, specularBorder, RoundedCornerShape(16.dp))
@@ -353,7 +353,7 @@ private fun SettingDropdownRow(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1A1432), Color(0xFF120E25))
+                    colors = listOf(CardSurfaceElevated, CardSurface)
                 )
             )
             .border(1.dp, specularBorder, RoundedCornerShape(16.dp))

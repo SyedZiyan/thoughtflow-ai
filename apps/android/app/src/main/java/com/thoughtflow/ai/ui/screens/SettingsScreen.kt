@@ -71,7 +71,6 @@ fun SettingsScreen(
     var showAboutDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
-    var selectedTheme by remember { mutableStateOf("Dark Luxury") }
     var selectedLanguage by remember { mutableStateOf("English") }
     var notificationsEnabled by remember { mutableStateOf(true) }
 
@@ -148,11 +147,11 @@ fun SettingsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color(0x337C3AED))
+                            .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = PurplePrimary.copy(alpha = 0.2f))
                             .clip(RoundedCornerShape(20.dp))
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(Color(0xFF1E1738), Color(0xFF130E26))
+                                    colors = listOf(CardSurfaceElevated, CardSurface)
                                 )
                             )
                             .border(1.dp, specularBorder, RoundedCornerShape(20.dp))
@@ -221,7 +220,7 @@ fun SettingsScreen(
                             .clip(RoundedCornerShape(20.dp))
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(Color(0xFF1A1432), Color(0xFF120E25))
+                                    colors = listOf(CardSurfaceElevated, CardSurface)
                                 )
                             )
                             .border(1.dp, specularBorder, RoundedCornerShape(20.dp))
@@ -265,7 +264,7 @@ fun SettingsScreen(
                         SettingsMenuItem(
                             icon = Icons.Outlined.Palette,
                             title = "App Theme",
-                            trailingText = selectedTheme,
+                            trailingText = AppThemeManager.currentTheme.name,
                             onClick = { showThemeDialog = true }
                         )
 
@@ -289,7 +288,7 @@ fun SettingsScreen(
                             .clip(RoundedCornerShape(20.dp))
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(Color(0xFF1A1432), Color(0xFF120E25))
+                                    colors = listOf(CardSurfaceElevated, CardSurface)
                                 )
                             )
                             .border(1.dp, specularBorder, RoundedCornerShape(20.dp))
@@ -323,7 +322,7 @@ fun SettingsScreen(
                         SettingsMenuItem(
                             icon = Icons.Outlined.Info,
                             title = "About ThoughtFlow AI",
-                            trailingText = "v1.1.0 Elite",
+                            trailingText = "v1.3.2 Elite",
                             onClick = { showAboutDialog = true }
                         )
                     }
@@ -334,11 +333,11 @@ fun SettingsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color(0x407C3AED))
+                            .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = PurplePrimary.copy(alpha = 0.25f))
                             .clip(RoundedCornerShape(20.dp))
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(Color(0xFF221A45), Color(0xFF140E2D))
+                                    colors = listOf(CardSurfaceElevated, CardSurface)
                                 )
                             )
                             .border(1.dp, PurpleAccent.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
@@ -778,46 +777,76 @@ fun SettingsScreen(
 
         // App Theme Dialog
         if (showThemeDialog) {
-            val themes = listOf(
-                "Dark Luxury (Signature)" to PurplePrimary,
-                "Cyber Neon Cyan" to Color(0xFF06B6D4),
-                "Sunset Coral & Gold" to Color(0xFFF97316),
-                "Emerald Zen" to Color(0xFF10B981)
-            )
             AlertDialog(
                 onDismissRequest = { showThemeDialog = false },
-                title = { Text("Choose App Theme", color = TextWhite, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "Choose App Theme",
+                        color = TextWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        themes.forEach { (name, color) ->
-                            val isSelected = selectedTheme == name
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        AppThemeManager.THEMES.forEach { themeConfig ->
+                            val isSelected = AppThemeManager.currentTheme.name == themeConfig.name
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) color.copy(alpha = 0.2f) else Color.Transparent)
-                                    .border(1.dp, if (isSelected) color else CardBorder, RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) themeConfig.primary.copy(alpha = 0.15f) else Color.Transparent)
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) themeConfig.primary else CardBorder,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
                                     .clickable {
-                                        selectedTheme = name
+                                        AppThemeManager.setTheme(themeConfig.name)
                                         showThemeDialog = false
-                                        Toast.makeText(context, "Theme set to $name", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Theme: ${themeConfig.name}", Toast.LENGTH_SHORT).show()
                                     }
                                     .padding(horizontal = 14.dp, vertical = 12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .clip(CircleShape)
-                                            .background(color)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                ) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .clip(CircleShape)
+                                                .background(themeConfig.primary)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .clip(CircleShape)
+                                                .background(themeConfig.cardSurface)
+                                                .border(0.5.dp, Color.White.copy(alpha = 0.25f), CircleShape)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        themeConfig.name,
+                                        color = TextWhite,
+                                        fontSize = 13.5.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(name, color = TextWhite, fontSize = 13.5.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
                                 }
                                 if (isSelected) {
-                                    Icon(Icons.Default.Check, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = themeConfig.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                             }
                         }
@@ -825,7 +854,7 @@ fun SettingsScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showThemeDialog = false }) {
-                        Text("Done", color = PurpleAccent)
+                        Text("Done", color = PurpleAccent, fontWeight = FontWeight.SemiBold)
                     }
                 },
                 containerColor = CardSurfaceElevated,
@@ -890,7 +919,7 @@ private fun SettingsMenuItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .bounceClick(scaleDown = 0.98f, onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically

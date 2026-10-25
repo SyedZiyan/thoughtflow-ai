@@ -293,7 +293,7 @@ fun LibraryScreen(
                             .clip(RoundedCornerShape(24.dp))
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(Color(0xFF1F173B), Color(0xFF130E26))
+                                    colors = listOf(CardSurfaceElevated, CardSurface)
                                 )
                             )
                             .border(1.dp, specularBorder, RoundedCornerShape(24.dp))
@@ -397,7 +397,7 @@ fun LibraryScreen(
             val act = selectedActionItem!!
             ModalBottomSheet(
                 onDismissRequest = { selectedActionItem = null },
-                containerColor = Color(0xFF15102A)
+                containerColor = CardSurfaceElevated
             ) {
                 Column(
                     modifier = Modifier
@@ -481,7 +481,7 @@ private fun LibraryCardItem(
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF191330), Color(0xFF110D24))
+                    colors = listOf(CardSurfaceElevated, CardSurface)
                 )
             )
             .border(1.dp, specularBorder, RoundedCornerShape(18.dp))

@@ -10,34 +10,33 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = PurplePrimary,
-    onPrimary = TextWhite,
-    primaryContainer = PurpleSurface,
-    onPrimaryContainer = PurpleAccent,
-    secondary = PurpleAccent,
-    onSecondary = TextWhite,
-    background = DeepBackground,
-    onBackground = TextWhite,
-    surface = CardSurface,
-    onSurface = TextWhite,
-    surfaceVariant = CardSurfaceElevated,
-    onSurfaceVariant = TextSecondary,
-    outline = CardBorder
-)
-
 @Composable
 fun ThoughtFlowTheme(
     darkTheme: Boolean = true, // Default to Dark luxury theme per UI design plan
     content: @Composable () -> Unit
 ) {
-    val colorScheme = DarkColorScheme
+    val currentTheme = AppThemeManager.currentTheme
+    val colorScheme = darkColorScheme(
+        primary = currentTheme.primary,
+        onPrimary = TextWhite,
+        primaryContainer = currentTheme.surface,
+        onPrimaryContainer = currentTheme.accent,
+        secondary = currentTheme.accent,
+        onSecondary = TextWhite,
+        background = currentTheme.background,
+        onBackground = TextWhite,
+        surface = currentTheme.cardSurface,
+        onSurface = TextWhite,
+        surfaceVariant = currentTheme.cardSurfaceElevated,
+        onSurfaceVariant = TextSecondary,
+        outline = currentTheme.cardBorder
+    )
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = DeepBackground.toArgb()
-            window.navigationBarColor = DeepBackground.toArgb()
+            window.statusBarColor = currentTheme.background.toArgb()
+            window.navigationBarColor = currentTheme.background.toArgb()
             // Set status bar icons to light (white icons)
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false

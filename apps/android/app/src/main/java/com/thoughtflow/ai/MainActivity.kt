@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         LocalCacheManager.init(applicationContext)
+        com.thoughtflow.ai.ui.theme.AppThemeManager.init()
         setContent {
             ThoughtFlowTheme {
                 MainAppScreen()

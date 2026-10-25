@@ -11,8 +11,8 @@ android {
         applicationId = "com.thoughtflow.ai"
         minSdk = 26
         targetSdk = 34
-        versionCode = 14
-        versionName = "1.3.1"
+        versionCode = 16
+        versionName = "1.3.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

@@ -222,7 +222,7 @@ private fun LogCard(log: ExecutionLogItem) {
             .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF191330), Color(0xFF110D24))
+                    colors = listOf(CardSurfaceElevated, CardSurface)
                 )
             )
             .border(1.dp, specularBorder, RoundedCornerShape(16.dp))

@@ -550,7 +550,7 @@ private fun MetricCard(
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1A1432), Color(0xFF120E25))
+                    colors = listOf(CardSurfaceElevated, CardSurface)
                 )
             )
             .border(1.dp, specularBorder, RoundedCornerShape(18.dp))
@@ -630,7 +630,7 @@ private fun RealAnalyticsAreaChart(
             .clip(RoundedCornerShape(20.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1B1634), Color(0xFF120E26))
+                    colors = listOf(CardSurfaceElevated, CardSurface)
                 )
             )
             .border(1.dp, specularBorder, RoundedCornerShape(20.dp))
@@ -794,7 +794,7 @@ private fun RealVideoCard(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF191330), Color(0xFF110D24))
+                    colors = listOf(CardSurfaceElevated, CardSurface)
                 )
             )
             .border(1.dp, specularBorder, RoundedCornerShape(16.dp))

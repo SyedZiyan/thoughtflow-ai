@@ -431,7 +431,7 @@ fun YouTubeScreen(
                             .clip(RoundedCornerShape(20.dp))
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(Color(0xFF1B1634), Color(0xFF120E25))
+                                    colors = listOf(CardSurfaceElevated, CardSurface)
                                 )
                             )
                             .border(1.dp, specularBorder, RoundedCornerShape(20.dp))

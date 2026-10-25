@@ -36,6 +36,14 @@ object LocalCacheManager {
         prefs?.edit()?.putString("saved_server_host", host)?.apply()
     }
 
+    fun getSavedTheme(): String {
+        return prefs?.getString("saved_app_theme", "Obsidian Dark Studio") ?: "Obsidian Dark Studio"
+    }
+
+    fun saveAppTheme(theme: String) {
+        prefs?.edit()?.putString("saved_app_theme", theme)?.apply()
+    }
+
     // --- Dashboard Cache ---
     fun saveDashboard(dashboard: DashboardResponse) {
         prefs?.edit()?.putString("cache_dashboard", gson.toJson(dashboard))?.apply()

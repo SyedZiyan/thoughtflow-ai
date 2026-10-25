@@ -289,7 +289,7 @@ fun DashboardScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                // Primary "Generate Now" Studio Blue Button
+                                // Primary "Generate Now" Studio Themed Button
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -297,7 +297,7 @@ fun DashboardScreen(
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(
                                             Brush.horizontalGradient(
-                                                colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+                                                colors = listOf(PurplePrimary, PurpleDark)
                                             )
                                         )
                                         .bounceClick(scaleDown = 0.96f, onClick = { showFormatDialog = true }),
@@ -491,7 +491,7 @@ private fun StatusItemCard(
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1B1634), Color(0xFF130E26))
+                    colors = listOf(CardSurfaceElevated, CardSurface)
                 )
             )
             .border(1.dp, specularBorder, RoundedCornerShape(18.dp))
@@ -566,7 +566,7 @@ private fun NextVideoScheduleBanner(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1A1432), Color(0xFF120E26))
+                    colors = listOf(CardSurfaceElevated, CardSurface)
                 )
             )
             .border(1.dp, specularBorder, RoundedCornerShape(16.dp))
