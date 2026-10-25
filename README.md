@@ -23,19 +23,18 @@ The platform includes a **Native Android Mobile App** (Kotlin + Jetpack Compose)
 
 ---
 
-## 📸 Feature Showcase
+## 📱 Real Device Glimpse
+
+Captured directly from physical hardware:
 
 <p align="center">
-  <img src="docs/assets/feature_gallery.png" alt="ThoughtFlow AI Features" width="100%" />
-</p>
-
-### 📱 Real Device Mobile Experience
-
-<p align="center">
-  <img src="docs/assets/mobile_dashboard.png" width="45%" alt="Android Dashboard" />
+  <img src="docs/assets/real_dashboard.png" width="46%" alt="Live Dashboard on Device" />
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/assets/mobile_youtube.png" width="45%" alt="YouTube Integration" />
+  <img src="docs/assets/real_quote_generator.png" width="46%" alt="Procedural Canvas on Device" />
 </p>
+
+- **Left (Dashboard)**: Clean Obsidian Studio dark palette, dynamic user greeting, "Today's Thought" hero card, daily status counters, and instant generation controls.
+- **Right (Dynamic Quote Canvas)**: Procedural theme randomizer, photographic city skyline backdrop, torn sticker note with highlighted keywords, and instant 1080p Gallery export.
 
 ---
 
@@ -47,7 +46,7 @@ Instead of static templates, ThoughtFlow features an algorithmic randomizer that
   <img src="docs/assets/procedural_styles.png" alt="Procedural Styles" width="100%" />
 </p>
 
-- **16 Scenic Backdrops**: Alpine Trail, Sunrise Summit, Balcony Sunset, Misty Redwood, Starry Cosmos, Golden Dunes, Rainy Evening Window, and Classical Library.
+- **16 Scenic Backdrops**: Alpine Trail, Sunrise Summit, Balcony Sunset, Misty Redwood, Starry Cosmos, Golden Dunes, Rainy Evening Window, Classical Library, and Metropolis Night Glow.
 - **5 Layout Architectures**:
   - *Torn Sticker Note*: Keyword highlighter box, organic craft drop shadow, and travel icons.
   - *Vintage Storybook*: Classic serif editorial, gold floral flourishes (`— ❧ —`), and warm vignetting.
@@ -82,7 +81,7 @@ thoughtflow-ai/
 │   └── Dockerfile
 ├── storage/
 │   └── videos/          # Compiled 9:16 vertical MP4 video shorts
-├── docs/assets/         # Polished showcase assets & screenshots
+├── docs/assets/         # Polished showcase assets & real device screenshots
 ├── docker-compose.yml   # Multi-container orchestration (PostgreSQL + Backend + Worker + Web)
 ├── render.yaml          # Zero-downtime 1-click cloud deployment blueprint (Render.com)
 └── publish_update.ps1   # 1-Click In-App OTA APK release publisher
