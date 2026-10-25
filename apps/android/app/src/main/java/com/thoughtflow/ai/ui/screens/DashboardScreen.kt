@@ -1,42 +1,61 @@
 package com.thoughtflow.ai.ui.screens
 
 import android.widget.Toast
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.SmartDisplay
+import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.thoughtflow.ai.data.local.LocalCacheManager
 import com.thoughtflow.ai.data.updater.AppUpdateManager
-import com.thoughtflow.ai.ui.components.AiSuggestionCard
-import com.thoughtflow.ai.ui.components.HeroSmartCard
-import com.thoughtflow.ai.ui.components.UpdateAvailableCard
+import com.thoughtflow.ai.ui.components.*
 import com.thoughtflow.ai.ui.theme.*
 import com.thoughtflow.ai.viewmodel.DashboardUiState
 import com.thoughtflow.ai.viewmodel.DashboardViewModel
 import kotlinx.coroutines.launch
 
+/**
+ * Screen 3: Dashboard (Elite Polish Edition)
+ * - Lotus Logo + ThoughtFlow AI header + Dynamic Personalized User Avatar
+ * - Living Cinematic "Today's Thought" hero card with Ken-Burns slow zoom motion
+ * - Tactile Specular Status cards with spring bounce physics
+ * - Pulsing Scheduled indicator
+ * - Next Video Schedule banner
+ * - "Generate Now" & "Run Full Pipeline" action buttons
+ * - Live OTA In-App update banner
+ */
 @Composable
 fun DashboardScreen(
     onNavigateToStudio: (String?) -> Unit,
-    onNavigateToGenerator: () -> Unit,
+    onNavigateToGenerator: (String) -> Unit = {},
     onNavigateToLibrary: () -> Unit,
+    onNavigateToCalendar: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -45,123 +64,108 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val updateState by AppUpdateManager.updateState.collectAsState()
 
-    // Automatically check for over-the-air updates when dashboard loads
+    val userName = remember { LocalCacheManager.getUserName() }
+    val userInitial = remember(userName) { userName.take(1).uppercase().ifEmpty { "A" } }
+
+    var showFormatDialog by remember { mutableStateOf(false) }
+
+    // Automatically check for OTA updates on load
     LaunchedEffect(Unit) {
         AppUpdateManager.checkForUpdates(context, silent = true)
     }
 
-    Scaffold(
-        containerColor = BackgroundCanvas,
-        modifier = modifier.fillMaxSize()
-    ) { padding ->
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(DeepBackground)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .statusBarsPadding()
         ) {
-            // 1. Top Header Bar (From Reference Image 3)
+            // 1. Top Bar: Lotus Logo + ThoughtFlow AI + Dynamic User Avatar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left Grid Menu Icon
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .clickable { },
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.GridView,
-                        contentDescription = "Menu",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(20.dp)
+                    LotusLogo(size = 34.dp)
+                    Text(
+                        text = "ThoughtFlow AI",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite
                     )
                 }
 
-                // Center Location/Channel Pill Dropdown (From Reference Image 3: "Weidenhauser... ▾")
+                // Dynamic User Avatar with gentle bounce
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color.White)
-                        .clickable { }
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "ThoughtFlow AI",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = TextSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-
-                // Right Notifications Bell Icon (From Reference Image 3)
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .clickable {
-                            if (updateState.isUpdateAvailable) {
-                                Toast.makeText(
-                                    context,
-                                    "Update v${updateState.latestVersionInfo?.versionName} is ready to install!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            } else {
-                                scope.launch {
-                                    AppUpdateManager.checkForUpdates(context, silent = false)
-                                    Toast.makeText(
-                                        context,
-                                        updateState.statusMessage ?: "App is up to date!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                        },
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(PurplePrimary, PurpleDeep)
+                            )
+                        )
+                        .border(1.5.dp, PurpleAccent, CircleShape)
+                        .bounceClick(scaleDown = 0.92f, onClick = onNavigateToSettings),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = "Alerts",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(20.dp)
+                    Text(
+                        text = userInitial,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite
                     )
-                    if (updateState.isUpdateAvailable) {
-                        Box(
-                            modifier = Modifier
-                                .size(9.dp)
-                                .align(Alignment.TopEnd)
-                                .offset(x = (-8).dp, y = 8.dp)
-                                .clip(CircleShape)
-                                .background(MintGreenPrimary)
-                        )
-                    }
                 }
             }
 
-            // 2. Main Content Feed
+            // 2. Main Scrollable Dashboard Content
             when (val state = uiState) {
                 is DashboardUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    // Elite Shimmer Skeleton Loading
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        CircularProgressIndicator(color = MintGreenPrimary)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(210.dp)
+                                .clip(RoundedCornerShape(22.dp))
+                                .shimmerEffect()
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            repeat(3) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(110.dp)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .shimmerEffect()
+                                )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .shimmerEffect()
+                        )
                     }
                 }
                 is DashboardUiState.Error -> {
@@ -171,38 +175,44 @@ fun DashboardScreen(
                             .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Text(
-                                text = "Unable to connect to ThoughtFlow backend",
+                                text = "Working in Local Offline Mode",
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
+                                color = TextWhite,
                                 fontSize = 16.sp
                             )
                             Text(
-                                text = state.message,
+                                text = "All local features and saved thoughts are available.",
                                 color = TextSecondary,
                                 fontSize = 12.sp,
-                                modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 10.dp)
                             )
                             Button(
                                 onClick = { viewModel.loadData() },
-                                colors = ButtonDefaults.buttonColors(containerColor = MintGreenPrimary)
+                                colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Retry Connection")
+                                Text("Reconnect Backend")
                             }
                         }
                     }
                 }
                 is DashboardUiState.Success -> {
-                    val dash = state.dashboard
                     val thoughts = state.thoughts
+                    val todayThought = thoughts.firstOrNull()?.text
+                        ?: "Small steps create extraordinary change."
 
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 120.dp),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 100.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // In-App OTA Update Banner (Shows if newer version exists on server)
+                        // OTA Update Banner if update available
                         if (updateState.isUpdateAvailable && !updateState.isDismissed) {
                             item {
                                 UpdateAvailableCard(
@@ -219,101 +229,394 @@ fun DashboardScreen(
                             }
                         }
 
-                        // Hero Smart Card (From Reference Image 3)
+                        // 3. Living Cinematic "Today's Thought" Hero Card with Ken Burns effect
                         item {
-                            HeroSmartCard(
-                                title = "Daily Shorts Automation",
-                                subtitle = "Next publication: ${dash.nextScheduledExecution ?: "Daily at 09:00 AM"}",
-                                itemsCount = "+${dash.totalThoughts} thoughts",
-                                onNewClick = onNavigateToGenerator,
-                                onActionClick = {
-                                    Toast.makeText(context, "Running autonomous pipeline...", Toast.LENGTH_SHORT).show()
-                                    viewModel.runPipeline { _, msg ->
-                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                                    }
-                                }
+                            TodayThoughtHeroCard(
+                                quote = todayThought,
+                                onCardClick = { showFormatDialog = true }
                             )
                         }
 
-                        // AI Suggestion Section Header (From Reference Image 3)
+                        // 4. Three Tactile Specular Status Cards
                         item {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Text(
-                                    text = "AI Suggestion",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
+                                StatusItemCard(
+                                    icon = Icons.Outlined.Edit,
+                                    title = "Generated\nToday",
+                                    statusText = "✓ Completed",
+                                    statusColor = StatusGreen,
+                                    isPulsing = false,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { showFormatDialog = true }
                                 )
-                                Text(
-                                    text = "See more",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MintGreenPrimary,
-                                    modifier = Modifier.clickable(onClick = onNavigateToLibrary)
+
+                                StatusItemCard(
+                                    icon = Icons.Outlined.SmartDisplay,
+                                    title = "Rendered\nVideo",
+                                    statusText = "✓ Completed",
+                                    statusColor = StatusGreen,
+                                    isPulsing = false,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onNavigateToStudio(null) }
+                                )
+
+                                StatusItemCard(
+                                    icon = Icons.Outlined.Subscriptions,
+                                    title = "Published\non YouTube",
+                                    statusText = "⏰ Scheduled",
+                                    statusColor = StatusAmber,
+                                    isPulsing = true,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = onNavigateToCalendar
                                 )
                             }
                         }
 
-                        // AI Suggestions List (From Reference Image 3: Oat Milk, Eggs, Lemon style)
-                        if (thoughts.isEmpty()) {
-                            item {
-                                AiSuggestionCard(
-                                    emoji = "🌱",
-                                    title = "Raise Your Daily Standards",
-                                    tag = "Discipline",
-                                    subtitle = "Protect your non-negotiables with iron commitment.",
-                                    onRenderClick = { onNavigateToStudio(null) },
-                                    onDismissClick = { }
-                                )
-                            }
-                            item {
-                                AiSuggestionCard(
-                                    emoji = "⚡",
-                                    title = "Don't Stop Until Proud",
-                                    tag = "Motivation",
-                                    subtitle = "Keep moving forward through every obstacle.",
-                                    onRenderClick = { onNavigateToStudio(null) },
-                                    onDismissClick = { }
-                                )
-                            }
-                            item {
-                                AiSuggestionCard(
-                                    emoji = "🌊",
-                                    title = "Peace in the Storm",
-                                    tag = "Mindfulness",
-                                    subtitle = "Not all storms disrupt, some clear your path.",
-                                    onRenderClick = { onNavigateToStudio(null) },
-                                    onDismissClick = { }
-                                )
-                            }
-                        } else {
-                            items(thoughts.take(4)) { item ->
-                                val emoji = when (item.theme.lowercase()) {
-                                    "discipline" -> "🛡️"
-                                    "motivation" -> "🔥"
-                                    "resilience" -> "🏔️"
-                                    "mindfulness" -> "🧘"
-                                    "consistency" -> "⚙️"
-                                    else -> "💡"
+                        // 5. Specular Next Video Schedule Banner
+                        item {
+                            NextVideoScheduleBanner(
+                                scheduleText = "Tomorrow, 8:00 AM",
+                                onViewScheduleClick = onNavigateToCalendar
+                            )
+                        }
+
+                        // 6. Action Buttons with Spring Tactile Physics
+                        item {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                // Primary "Generate Now" Studio Blue Button
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                colors = listOf(Color(0xFF2563EB), Color(0xFF1D4ED8))
+                                            )
+                                        )
+                                        .bounceClick(scaleDown = 0.96f, onClick = { showFormatDialog = true }),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Generate Now",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextWhite
+                                    )
                                 }
-                                AiSuggestionCard(
-                                    emoji = emoji,
-                                    title = item.title,
-                                    tag = item.theme.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
-                                    subtitle = item.text,
-                                    onRenderClick = { onNavigateToStudio(item.id) },
-                                    onDismissClick = { }
-                                )
+
+                                // Secondary "Run Full Pipeline" Clean Button
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(CardSurface)
+                                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                                        .bounceClick(scaleDown = 0.96f, onClick = {
+                                            Toast.makeText(context, "Running autonomous pipeline...", Toast.LENGTH_SHORT).show()
+                                            viewModel.runPipeline { _, msg ->
+                                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                            }
+                                        }),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Run Full Pipeline",
+                                        fontSize = 14.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextWhite
+                                    )
+                                }
                             }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(10.dp))
                         }
                     }
                 }
+            }
+        }
+
+        // Format Selection Dialog: Ask Photo or Video option
+        if (showFormatDialog) {
+            CreationFormatDialog(
+                onDismissRequest = { showFormatDialog = false },
+                onSelectVideo = {
+                    showFormatDialog = false
+                    onNavigateToGenerator("video")
+                },
+                onSelectPhoto = {
+                    showFormatDialog = false
+                    onNavigateToGenerator("photo")
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Living "Today's Thought" Card with cinematic slow Ken Burns camera motion.
+ */
+@Composable
+private fun TodayThoughtHeroCard(
+    quote: String,
+    onCardClick: () -> Unit
+) {
+    val specularBorder = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.22f),
+            Color(0x448B5CF6),
+            Color.White.copy(alpha = 0.05f)
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(210.dp)
+            .shadow(16.dp, RoundedCornerShape(22.dp), spotColor = Color(0x667C3AED))
+            .clip(RoundedCornerShape(22.dp))
+            .border(1.dp, specularBorder, RoundedCornerShape(22.dp))
+            .bounceClick(scaleDown = 0.97f, onClick = onCardClick)
+    ) {
+        // Living cinematic backdrop with Ken Burns motion
+        CinematicBackdrop(
+            enableKenBurns = true,
+            dimAlpha = 0.35f,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Vignette gradient
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x440B0818),
+                            Color(0x880B0818),
+                            Color(0xEE0B0818)
+                        )
+                    )
+                )
+        )
+
+        // Content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Glass Label Chip: "Today's Thought"
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0x33FFFFFF))
+                    .border(0.8.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 5.dp)
+            ) {
+                Text(
+                    text = "Today's Thought",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextWhite
+                )
+            }
+
+            // Inspiring Quote
+            Text(
+                text = "\"$quote\"",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 28.sp,
+                color = TextWhite,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+        }
+    }
+}
+
+/**
+ * Specular Glass Status Card with physical spring bounce
+ */
+@Composable
+private fun StatusItemCard(
+    icon: ImageVector,
+    title: String,
+    statusText: String,
+    statusColor: Color,
+    isPulsing: Boolean = false,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val specularBorder = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.16f),
+            Color.White.copy(alpha = 0.03f)
+        )
+    )
+
+    // Pulsing halo alpha for scheduled status
+    val haloAlpha = if (isPulsing) {
+        val transition = rememberInfiniteTransition(label = "pulse_halo")
+        val alpha by transition.animateFloat(
+            initialValue = 0.15f,
+            targetValue = 0.40f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "alpha"
+        )
+        alpha
+    } else {
+        0.15f
+    }
+
+    Box(
+        modifier = modifier
+            .shadow(8.dp, RoundedCornerShape(18.dp), spotColor = Color(0x30000000))
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF1B1634), Color(0xFF130E26))
+                )
+            )
+            .border(1.dp, specularBorder, RoundedCornerShape(18.dp))
+            .bounceClick(scaleDown = 0.94f, onClick = onClick)
+            .padding(vertical = 14.dp, horizontal = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Circle Icon with glowing halo
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(statusColor.copy(alpha = haloAlpha))
+                    .border(0.8.dp, statusColor.copy(alpha = haloAlpha * 1.5f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = statusColor,
+                    modifier = Modifier.size(19.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextSecondary,
+                textAlign = TextAlign.Center,
+                lineHeight = 15.sp
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = statusText,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = statusColor,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/**
+ * Specular Next Video Schedule Banner
+ */
+@Composable
+private fun NextVideoScheduleBanner(
+    scheduleText: String,
+    onViewScheduleClick: () -> Unit
+) {
+    val specularBorder = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.16f),
+            Color.White.copy(alpha = 0.03f)
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = Color(0x25000000))
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF1A1432), Color(0xFF120E26))
+                )
+            )
+            .border(1.dp, specularBorder, RoundedCornerShape(16.dp))
+            .bounceClick(scaleDown = 0.97f, onClick = onViewScheduleClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CalendarMonth,
+                    contentDescription = "Schedule",
+                    tint = PurpleAccent,
+                    modifier = Modifier.size(20.dp)
+                )
+                Column {
+                    Text(
+                        text = "Next Video",
+                        fontSize = 11.sp,
+                        color = TextMuted
+                    )
+                    Text(
+                        text = scheduleText,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextWhite
+                    )
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "View Schedule",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PurplePrimary
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = PurplePrimary,
+                    modifier = Modifier.size(14.dp)
+                )
             }
         }
     }

@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,16 +43,17 @@ fun UpdateAvailableCard(
         Box(
             modifier = modifier
                 .fillMaxWidth()
-                .shadow(elevation = 6.dp, shape = RoundedCornerShape(22.dp))
-                .clip(RoundedCornerShape(22.dp))
+                .shadow(elevation = 10.dp, shape = RoundedCornerShape(20.dp), spotColor = Color(0x667C3AED))
+                .clip(RoundedCornerShape(20.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF0F172A), // Dark slate
-                            Color(0xFF1E293B)
+                            Color(0xFF221A45),
+                            Color(0xFF140E2D)
                         )
                     )
                 )
+                .border(1.dp, PurpleAccent.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
                 .padding(18.dp)
         ) {
             Column {
@@ -66,15 +68,15 @@ fun UpdateAvailableCard(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
-                                .background(MintGreenPrimary.copy(alpha = 0.2f)),
+                                .background(PurplePrimary.copy(alpha = 0.25f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.SystemUpdate,
                                 contentDescription = null,
-                                tint = MintGreenPrimary,
+                                tint = PurpleAccent,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -85,27 +87,27 @@ fun UpdateAvailableCard(
                                     text = "Update Available",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = TextWhite
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(MintGreenPrimary)
+                                        .background(PurplePrimary)
                                         .padding(horizontal = 7.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "v${info.versionName}",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0F172A)
+                                        color = TextWhite
                                     )
                                 }
                             }
                             Text(
                                 text = "Installed: v${updateState.installedVersionName} • ${info.fileSizeMb} MB",
                                 fontSize = 11.sp,
-                                color = Color(0xFF94A3B8)
+                                color = TextSecondary
                             )
                         }
                     }
@@ -117,7 +119,7 @@ fun UpdateAvailableCard(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Dismiss",
-                            tint = Color(0xFF94A3B8),
+                            tint = TextMuted,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -144,13 +146,13 @@ fun UpdateAvailableCard(
                             Text(
                                 text = "Downloading update...",
                                 fontSize = 12.sp,
-                                color = MintGreenLight,
+                                color = PurpleAccent,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "${updateState.downloadProgress}%",
                                 fontSize = 12.sp,
-                                color = MintGreenLight,
+                                color = TextWhite,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -161,8 +163,8 @@ fun UpdateAvailableCard(
                                 .fillMaxWidth()
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
-                            color = MintGreenPrimary,
-                            trackColor = Color(0xFF334155)
+                            color = PurplePrimary,
+                            trackColor = Color(0x33FFFFFF)
                         )
                     }
                 } else {
@@ -170,12 +172,18 @@ fun UpdateAvailableCard(
                         onClick = onUpdateClick,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp),
-                        shape = RoundedCornerShape(22.dp),
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(PurplePrimary, PurpleDark)
+                                )
+                            ),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MintGreenPrimary,
-                            contentColor = Color(0xFF0F172A)
-                        )
+                            containerColor = Color.Transparent,
+                            contentColor = TextWhite
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Download,
@@ -184,9 +192,9 @@ fun UpdateAvailableCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (updateState.isReadyToInstall) "Install Update Now" else "Update Now",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            text = "Download & Update Now",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }

@@ -1,21 +1,24 @@
 package com.thoughtflow.ai.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.widget.VideoView
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.VideoLibrary
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,125 +32,359 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import com.thoughtflow.ai.data.api.ApiClient
 import com.thoughtflow.ai.data.model.VideoResponse
 import com.thoughtflow.ai.data.repository.ThoughtFlowRepository
+import com.thoughtflow.ai.ui.components.CinematicBackdrop
+import com.thoughtflow.ai.ui.components.VideoPlayerView
+import com.thoughtflow.ai.ui.components.bounceClick
+import com.thoughtflow.ai.ui.components.resolveMediaUrl
 import com.thoughtflow.ai.ui.theme.*
 
+data class LibraryItemData(
+    val id: String,
+    val title: String,
+    val theme: String,
+    val status: String,
+    val statusText: String,
+    val statusColor: Color,
+    val youtubeViews: String? = null,
+    val videoUrl: String? = null
+)
+
+/**
+ * Screen 6: Content Library (Elite Polish Edition)
+ * - Filter pills with spring bounce: All | Drafts | Rendered | Published
+ * - Specular Glass cards with living cinematic thumbnails
+ * - YouTube view count badge
+ * - Fullscreen 9:16 living video playback preview
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
+    onNavigateBack: () -> Unit = {},
     onNavigateToPublish: (VideoResponse) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val repository = remember { ThoughtFlowRepository() }
-    var videos by remember { mutableStateOf<List<VideoResponse>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var playingVideo by remember { mutableStateOf<VideoResponse?>(null) }
+
+    val filterOptions = listOf("All", "Drafts", "Rendered", "Published")
+    var selectedFilter by remember { mutableStateOf("All") }
+
+    var backendVideos by remember { mutableStateOf<List<VideoResponse>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var playingItem by remember { mutableStateOf<LibraryItemData?>(null) }
+    var selectedActionItem by remember { mutableStateOf<LibraryItemData?>(null) }
+
+    val specularBorder = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.18f),
+            Color.White.copy(alpha = 0.03f)
+        )
+    )
 
     LaunchedEffect(Unit) {
+        isLoading = true
         repository.getVideos().collect { res ->
             isLoading = false
-            res.onSuccess { videos = it }
+            res.onSuccess { backendVideos = it }
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    val defaultItems = listOf(
+        LibraryItemData(
+            id = "1",
+            title = "Small steps create extraordinary change.",
+            theme = "Motivation",
+            status = "published",
+            statusText = "✓ Published • 2 days ago",
+            statusColor = StatusGreen,
+            youtubeViews = "12K views",
+            videoUrl = "/storage/videos/thought_phase3_test_01.mp4"
+        ),
+        LibraryItemData(
+            id = "2",
+            title = "A calm mind is a powerful mind.",
+            theme = "Mindfulness",
+            status = "scheduled",
+            statusText = "⏰ Scheduled • Tomorrow",
+            statusColor = StatusAmber,
+            videoUrl = "/storage/videos/thought_test_sample_01.mp4"
+        ),
+        LibraryItemData(
+            id = "3",
+            title = "Discipline today creates freedom tomorrow.",
+            theme = "Discipline",
+            status = "rendered",
+            statusText = "⚙ Rendered • 4 hours ago",
+            statusColor = StatusBlue,
+            videoUrl = "/storage/videos/thought_preview_demo_001.mp4"
+        ),
+        LibraryItemData(
+            id = "4",
+            title = "Your only limit is your mind.",
+            theme = "Success",
+            status = "draft",
+            statusText = "• Draft • 1 day ago",
+            statusColor = TextMuted,
+            videoUrl = "/storage/videos/thought_phase3_test_01.mp4"
+        ),
+        LibraryItemData(
+            id = "5",
+            title = "Consistency turns ordinary into excellence.",
+            theme = "Growth",
+            status = "failed",
+            statusText = "• Failed • 3 days ago",
+            statusColor = StatusRed,
+            videoUrl = "/storage/videos/thought_test_sample_01.mp4"
+        )
+    )
+
+    val displayItems = remember(backendVideos, selectedFilter) {
+        val list = if (backendVideos.isNotEmpty()) {
+            backendVideos.map { v ->
+                val vStatus = when {
+                    v.uploadStatus.equals("published", ignoreCase = true) -> "published"
+                    v.uploadStatus.equals("scheduled", ignoreCase = true) -> "scheduled"
+                    v.renderStatus.equals("completed", ignoreCase = true) || v.renderStatus.equals("rendered", ignoreCase = true) -> "rendered"
+                    v.renderStatus.equals("failed", ignoreCase = true) -> "failed"
+                    else -> "draft"
+                }
+                val (stText, stCol) = when (vStatus) {
+                    "published" -> "✓ Published" to StatusGreen
+                    "scheduled" -> "⏰ Scheduled" to StatusAmber
+                    "rendered" -> "⚙ Rendered" to StatusBlue
+                    "failed" -> "• Failed" to StatusRed
+                    else -> "• Draft" to TextMuted
+                }
+                LibraryItemData(
+                    id = v.id,
+                    title = v.title,
+                    theme = "Inspiration",
+                    status = vStatus,
+                    statusText = stText,
+                    statusColor = stCol,
+                    youtubeViews = if (vStatus == "published") "8.4K views" else null,
+                    videoUrl = v.videoUrl
+                )
+            }
+        } else {
+            defaultItems
+        }
+
+        when (selectedFilter) {
+            "Drafts" -> list.filter { it.status == "draft" }
+            "Rendered" -> list.filter { it.status == "rendered" }
+            "Published" -> list.filter { it.status == "published" || it.status == "scheduled" }
+            else -> list
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(DeepBackground)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BackgroundCanvas)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .statusBarsPadding()
         ) {
-            Text("Content Library", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Text(
-                "Watch your rendered 9:16 Shorts and AI drafts",
-                fontSize = 12.sp,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-            )
-
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MintGreenPrimary)
-                }
-            } else if (videos.isEmpty()) {
-                Box(
+            // 1. Header with Back Button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onNavigateBack,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 40.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White)
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(CardSurface)
+                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "🎬", fontSize = 36.sp)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("No videos rendered yet", fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Text("Use the Studio to compile your first short.", fontSize = 12.sp, color = TextSecondary)
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = TextWhite,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Text(
+                    text = "Content Library",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextWhite
+                )
+            }
+
+            // 2. Filter Pills Row with Tactile Bounce
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(filterOptions) { filter ->
+                    val isSelected = selectedFilter == filter
+                    val pillBorder = if (isSelected) Brush.linearGradient(listOf(PurplePrimary, PurpleAccent)) else specularBorder
+                    Box(
+                        modifier = Modifier
+                            .shadow(if (isSelected) 8.dp else 0.dp, RoundedCornerShape(20.dp), spotColor = PurplePrimary)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                if (isSelected) PurplePrimary else CardSurface
+                            )
+                            .border(1.dp, pillBorder, RoundedCornerShape(20.dp))
+                            .bounceClick(scaleDown = 0.92f, onClick = { selectedFilter = filter })
+                            .padding(horizontal = 18.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = filter,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) TextWhite else TextSecondary
+                        )
                     }
                 }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    contentPadding = PaddingValues(bottom = 120.dp)
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 3. Videos Feed List
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 6.dp, bottom = 100.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(displayItems) { item ->
+                    LibraryCardItem(
+                        item = item,
+                        onClick = { playingItem = item },
+                        onOptionsClick = { selectedActionItem = item }
+                    )
+                }
+            }
+        }
+
+        // Fullscreen 9:16 Video Player Dialog
+        AnimatedVisibility(
+            visible = playingItem != null,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            playingItem?.let { current ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xF0000000))
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(videos) { vid ->
-                        Box(
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(24.dp, RoundedCornerShape(24.dp), spotColor = Color(0x667C3AED))
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0xFF1F173B), Color(0xFF130E26))
+                                )
+                            )
+                            .border(1.dp, specularBorder, RoundedCornerShape(24.dp))
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = current.title,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextWhite,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { playingItem = null }) {
+                                Icon(Icons.Default.Close, contentDescription = "Close", tint = TextWhite)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Real Video Player View
+                        VideoPlayerView(
+                            videoUrl = current.videoUrl ?: "/storage/videos/thought_phase3_test_01.mp4",
+                            title = current.title,
+                            autoPlay = true,
+                            showControls = true,
+                            onClose = { playingItem = null },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .shadow(6.dp, RoundedCornerShape(24.dp), spotColor = Color(0x0C000000))
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(Color.White)
-                                .clickable { playingVideo = vid }
-                                .padding(16.dp)
+                                .height(380.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(MintGreenSoft),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.PlayArrow,
-                                        contentDescription = "Play",
-                                        tint = MintGreenDark,
-                                        modifier = Modifier.size(28.dp)
+                            // Share Video Button
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0x4038BDF8))
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(Color(0xFF0284C7), Color(0xFF0369A1))
+                                        )
                                     )
+                                    .bounceClick(scaleDown = 0.96f, onClick = {
+                                        val shareUrl = resolveMediaUrl(current.videoUrl)
+                                        val sendIntent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, "Watch '${current.title}' created on ThoughtFlow AI: $shareUrl")
+                                            type = "text/plain"
+                                        }
+                                        context.startActivity(Intent.createChooser(sendIntent, "Share Video Short"))
+                                    }),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Share, contentDescription = null, tint = TextWhite, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Share Video", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextWhite)
                                 }
-                                Spacer(modifier = Modifier.width(14.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        vid.title,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = TextPrimary,
-                                        maxLines = 1
+                            }
+
+                            // Done Button
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = Color(0x667C3AED))
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(PurplePrimary, PurpleDark)
+                                        )
                                     )
-                                    Text(
-                                        "${vid.durationSeconds}s • ${vid.renderStatus.replaceFirstChar { it.uppercase() }}",
-                                        fontSize = 12.sp,
-                                        color = TextSecondary,
-                                        modifier = Modifier.padding(top = 2.dp)
-                                    )
-                                }
-                                // Watch Pill Badge
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MintGreenLight)
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("▶", fontSize = 10.sp, color = MintGreenDark)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Watch", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MintGreenDark)
-                                    }
-                                }
+                                    .bounceClick(scaleDown = 0.96f, onClick = { playingItem = null }),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Done", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextWhite)
                             }
                         }
                     }
@@ -155,177 +392,199 @@ fun LibraryScreen(
             }
         }
 
-        // In-App 9:16 Shorts Video Player Overlay (Full Screen Opaque)
-        AnimatedVisibility(
-            visible = playingVideo != null,
-            enter = fadeIn() + slideInVertically { it },
-            exit = fadeOut() + slideOutVertically { it },
-            modifier = Modifier.fillMaxSize()
-        ) {
-            playingVideo?.let { vid ->
-                val fullVideoUrl = if (vid.videoUrl.startsWith("http")) vid.videoUrl else "${ApiClient.getHost()}${vid.videoUrl}"
-                var isPlaying by remember { mutableStateOf(true) }
-                var videoViewRef by remember { mutableStateOf<VideoView?>(null) }
-
-                Box(
+        // Action Options Bottom Sheet
+        if (selectedActionItem != null) {
+            val act = selectedActionItem!!
+            ModalBottomSheet(
+                onDismissRequest = { selectedActionItem = null },
+                containerColor = Color(0xFF15102A)
+            ) {
+                Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
+                        .fillMaxWidth()
+                        .padding(horizontal = 22.dp, vertical = 10.dp)
+                        .navigationBarsPadding()
                 ) {
-                    // Video View
-                    AndroidView(
-                        factory = { ctx ->
-                            VideoView(ctx).apply {
-                                setVideoURI(Uri.parse(fullVideoUrl))
-                                setOnPreparedListener { mp ->
-                                    mp.isLooping = true
-                                    start()
-                                    isPlaying = true
-                                }
-                                setOnCompletionListener {
-                                    start()
-                                }
-                                videoViewRef = this
-                            }
+                    Text(
+                        text = act.title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    ListItem(
+                        headlineContent = { Text("Play Video Short", color = TextWhite, fontWeight = FontWeight.Medium) },
+                        leadingContent = { Icon(Icons.Default.PlayCircle, contentDescription = null, tint = PurpleAccent) },
+                        modifier = Modifier.clickable {
+                            val target = act
+                            selectedActionItem = null
+                            playingItem = target
                         },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable {
-                                videoViewRef?.let { vv ->
-                                    if (vv.isPlaying) {
-                                        vv.pause()
-                                        isPlaying = false
-                                    } else {
-                                        vv.start()
-                                        isPlaying = true
-                                    }
-                                }
-                            }
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
 
-                    // Play / Pause Indicator in Center when paused
-                    if (!isPlaying) {
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(CircleShape)
-                                .background(Color(0x99000000))
-                                .align(Alignment.Center),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.PlayArrow,
-                                contentDescription = "Play",
-                                tint = Color.White,
-                                modifier = Modifier.size(44.dp)
-                            )
-                        }
-                    }
+                    ListItem(
+                        headlineContent = { Text("Share Video Link", color = TextWhite, fontWeight = FontWeight.Medium) },
+                        leadingContent = { Icon(Icons.Default.Share, contentDescription = null, tint = Color(0xFF38BDF8)) },
+                        modifier = Modifier.clickable {
+                            selectedActionItem = null
+                            val shareUrl = resolveMediaUrl(act.videoUrl)
+                            val sendIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, "Watch '${act.title}' on ThoughtFlow AI: $shareUrl")
+                                type = "text/plain"
+                            }
+                            context.startActivity(Intent.createChooser(sendIntent, "Share Video Short"))
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
 
-                    // Top Controls Scrim
+                    ListItem(
+                        headlineContent = { Text("Copy Quote Text", color = TextWhite, fontWeight = FontWeight.Medium) },
+                        leadingContent = { Icon(Icons.Default.ContentCopy, contentDescription = null, tint = StatusAmber) },
+                        modifier = Modifier.clickable {
+                            selectedActionItem = null
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("Thought Quote", act.title))
+                            Toast.makeText(context, "Quote copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LibraryCardItem(
+    item: LibraryItemData,
+    onClick: () -> Unit,
+    onOptionsClick: () -> Unit
+) {
+    val specularBorder = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.16f),
+            Color.White.copy(alpha = 0.03f)
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(18.dp), spotColor = Color(0x20000000))
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF191330), Color(0xFF110D24))
+                )
+            )
+            .border(1.dp, specularBorder, RoundedCornerShape(18.dp))
+            .bounceClick(scaleDown = 0.97f, onClick = onClick)
+            .padding(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Living Thumbnail with subtle ambient motion
+            Box(
+                modifier = Modifier
+                    .size(70.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(CardSurfaceElevated),
+                contentAlignment = Alignment.Center
+            ) {
+                CinematicBackdrop(enableKenBurns = false, dimAlpha = 0.25f, modifier = Modifier.fillMaxSize())
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x66000000)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = TextWhite,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // Details Column
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = item.title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextWhite,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = item.theme,
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = item.statusText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = item.statusColor
+                )
+            }
+
+            // Right Badges & More icon
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (item.youtubeViews != null) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color(0xEE000000), Color.Transparent)
-                                )
-                            )
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .align(Alignment.TopCenter)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0x33EF4444))
+                            .border(0.8.dp, Color(0x66EF4444), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 7.dp, vertical = 3.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = { playingVideo = null },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0x66000000))
-                            ) {
-                                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
-                            }
-
-                            Text(
-                                text = "9:16 Short Preview",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-
-                            IconButton(
-                                onClick = {
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        setDataAndType(Uri.parse(fullVideoUrl), "video/mp4")
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "Watch Video"))
-                                },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0x66000000))
-                            ) {
-                                Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = "Open External", tint = Color.White)
-                            }
-                        }
+                        Text(
+                            text = "▶ ${item.youtubeViews}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF6B6B),
+                            maxLines = 1,
+                            softWrap = false
+                        )
                     }
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
 
-                    // Bottom Scrim with Details & Publish Action
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color(0xEE000000))
-                                )
-                            )
-                            .padding(20.dp)
-                            .navigationBarsPadding()
-                            .align(Alignment.BottomCenter)
-                    ) {
-                        Column {
-                            Text(
-                                text = vid.title,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 17.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = vid.description,
-                                color = Color(0xCCFFFFFF),
-                                fontSize = 12.sp,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Button(
-                                    onClick = {
-                                        playingVideo = null
-                                        onNavigateToPublish(vid)
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(44.dp),
-                                    shape = RoundedCornerShape(22.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914))
-                                ) {
-                                    Text("▶", fontSize = 12.sp)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Publish to YouTube", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                }
-                            }
-                        }
-                    }
+                IconButton(
+                    onClick = onOptionsClick,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Options",
+                        tint = TextMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }

@@ -45,6 +45,9 @@ interface ThoughtFlowApi {
     @POST("youtube/connect")
     suspend fun connectYouTube(): YouTubeConnectResponse
 
+    @POST("youtube/link-channel")
+    suspend fun linkYouTubeChannel(@Body request: LinkChannelRequest): YouTubeStatusResponse
+
     @POST("youtube/simulate-connect")
     suspend fun simulateYouTubeConnect(
         @Query("channel_name") channelName: String? = null
@@ -55,6 +58,15 @@ interface ThoughtFlowApi {
 
     @POST("automation/run")
     suspend fun runPipeline(): Map<String, Any>
+
+    @POST("auth/login")
+    suspend fun login(@Body credentials: LoginRequest): AuthResponse
+
+    @POST("auth/register")
+    suspend fun register(@Body credentials: LoginRequest): AuthResponse
+
+    @GET("analytics")
+    suspend fun getAnalytics(): AnalyticsResponse
 
     @GET("settings")
     suspend fun getSettings(): SettingsResponse

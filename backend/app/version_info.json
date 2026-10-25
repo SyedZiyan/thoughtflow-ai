@@ -1,6 +1,6 @@
-{
-  "version_name": "1.0.1",
-  "version_code": 2,
-  "release_notes": "Added In-App OTA Auto-Updater, 9:16 Shorts Player & YouTube Shorts Studio",
-  "download_url": "/api/v1/app/download"
+﻿{
+    "download_url":  "/api/v1/app/download",
+    "release_notes":  "Infinite Dynamic Style Randomizer: procedural unique photo themes and layouts on every generation, live real photographic canvas, 0% purple obsidian dark studio palette",
+    "version_code":  13,
+    "version_name":  "1.3.0"
 }

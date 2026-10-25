@@ -12,6 +12,74 @@ from app.core.config import settings
 
 router = APIRouter()
 
+from pydantic import BaseModel
+
+class LinkChannelRequest(BaseModel):
+    channel_name: str
+    channel_id: Optional[str] = None
+    channel_handle: Optional[str] = None
+    subscriber_count: Optional[int] = 0
+    video_count: Optional[int] = 0
+    view_count: Optional[int] = 0
+
+@router.post("/link-channel", response_model=YouTubeStatusResponse)
+def link_youtube_channel(
+    req: LinkChannelRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Directly links a creator's real YouTube channel by channel name, handle, or ID"""
+    clean_title = req.channel_name.strip()
+    if not clean_title:
+        raise HTTPException(status_code=400, detail="Channel title or handle is required.")
+        
+    integration = (
+        db.query(Integration)
+        .filter(Integration.user_id == current_user.id, Integration.provider == "youtube")
+        .first()
+    )
+    if not integration:
+        integration = Integration(
+            user_id=current_user.id,
+            provider="youtube"
+        )
+        db.add(integration)
+
+    chan_id = req.channel_id.strip() if req.channel_id else f"UC_{clean_title.replace(' ', '_').upper()}"
+    integration.connection_status = "connected"
+    integration.channel_id = chan_id
+    integration.channel_title = clean_title
+    integration.channel_metadata = {
+        "subscriber_count": req.subscriber_count or 0,
+        "video_count": req.video_count or 0,
+        "view_count": req.view_count or 0,
+        "channel_handle": req.channel_handle or clean_title,
+        "channel_thumbnail": f"https://ui-avatars.com/api/?name={clean_title}&background=7C3AED&color=fff&size=128"
+    }
+    integration.connected_at = datetime.now(timezone.utc)
+
+    log = ActivityLog(
+        user_id=current_user.id,
+        event_type="youtube_connected",
+        message=f"Linked real YouTube channel: {clean_title}",
+        log_metadata={"channel_title": clean_title, "channel_id": chan_id}
+    )
+    db.add(log)
+    db.commit()
+
+    return YouTubeStatusResponse(
+        connected=True,
+        channel_id=chan_id,
+        channel_title=clean_title,
+        channel_thumbnail=integration.channel_metadata.get("channel_thumbnail"),
+        subscriber_count=req.subscriber_count or 0,
+        video_count=req.video_count or 0,
+        view_count=req.view_count or 0,
+        connected_at=integration.connected_at,
+        upload_enabled=settings.YOUTUBE_UPLOAD_ENABLED,
+        dry_run_mode=not settings.YOUTUBE_UPLOAD_ENABLED
+    )
+
 @router.post("/connect")
 def connect_youtube(
     current_user: User = Depends(get_current_user)

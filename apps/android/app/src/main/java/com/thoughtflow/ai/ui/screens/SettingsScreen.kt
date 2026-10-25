@@ -1,9 +1,14 @@
 package com.thoughtflow.ai.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,32 +16,47 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Lan
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.thoughtflow.ai.data.api.ApiClient
+import com.thoughtflow.ai.data.local.LocalCacheManager
 import com.thoughtflow.ai.data.model.YouTubeStatusResponse
 import com.thoughtflow.ai.data.repository.ThoughtFlowRepository
 import com.thoughtflow.ai.data.updater.AppUpdateManager
+import com.thoughtflow.ai.ui.components.bounceClick
 import com.thoughtflow.ai.ui.theme.*
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Screen 11: Profile & Settings (Elite Polish Edition)
+ * - Tap-to-Edit Personalized Profile Card (saves directly to Local Storage)
+ * - Specular Glass menu groups with tactile spring response
+ * - YouTube Connection with live status
+ * - In-App OTA Update Manager
+ * - "Sign Out" button
+ */
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToAutomation: () -> Unit = {},
+    onNavigateToLogs: () -> Unit = {},
+    onNavigateToYouTube: () -> Unit = {},
+    onSignOut: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -44,779 +64,898 @@ fun SettingsScreen(
     val repository = remember { ThoughtFlowRepository() }
     val updateState by AppUpdateManager.updateState.collectAsState()
 
-    var serverHost by remember { mutableStateOf(ApiClient.getHost()) }
-    var isTestingConnection by remember { mutableStateOf(false) }
-    var connectionStatus by remember { mutableStateOf<String?>(null) }
-    var autoPublishEnabled by remember { mutableStateOf(true) }
-    var voiceNarrationEnabled by remember { mutableStateOf(true) }
+    var userName by remember { mutableStateOf(LocalCacheManager.getUserName()) }
+    var userEmail by remember { mutableStateOf(LocalCacheManager.getUserEmail()) }
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+    var showHelpDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    var selectedTheme by remember { mutableStateOf("Dark Luxury") }
+    var selectedLanguage by remember { mutableStateOf("English") }
+    var notificationsEnabled by remember { mutableStateOf(true) }
 
-    var youtubeStatus by remember { mutableStateOf<YouTubeStatusResponse?>(null) }
-    var isConnectingYouTube by remember { mutableStateOf(false) }
-    var showConnectDialog by remember { mutableStateOf(false) }
-    var showOAuthConfigNotice by remember { mutableStateOf(false) }
+    var serverHost by remember { mutableStateOf(ApiClient.getHost()) }
+    var isCheckingUpdates by remember { mutableStateOf(false) }
+    var ytStatus by remember { mutableStateOf<YouTubeStatusResponse?>(null) }
 
     LaunchedEffect(Unit) {
         repository.getYouTubeStatus().collect { res ->
-            res.onSuccess { youtubeStatus = it }
+            res.onSuccess { s -> ytStatus = s }
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Profile & Settings", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundCanvas)
-            )
-        },
-        containerColor = BackgroundCanvas,
-        modifier = modifier.fillMaxSize()
-    ) { padding ->
-        LazyColumn(
+    val userInitial = remember(userName) { userName.take(1).uppercase().ifEmpty { "A" } }
+
+    val specularBorder = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.18f),
+            Color.White.copy(alpha = 0.03f)
+        )
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(DeepBackground)
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 120.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .statusBarsPadding()
         ) {
-            // 1. YouTube Channel Integration Card (Prominent at the Top!)
-            item {
-                Box(
+            // 1. Top Header with Back Button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onNavigateBack,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = 3.dp, shape = RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White)
-                        .padding(20.dp)
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(CardSurface)
+                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
                 ) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFFFE4E6)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("▶", color = Color(0xFFE50914), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text("YouTube Channel", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextPrimary)
-                                    Text(
-                                        text = if (youtubeStatus?.connected == true)
-                                            (youtubeStatus?.channelTitle ?: "Connected Channel")
-                                        else
-                                            "Auto-Publish Shorts directly",
-                                        fontSize = 11.sp,
-                                        color = TextSecondary
-                                    )
-                                }
-                            }
-
-                            // Status Badge
-                            val isConnected = youtubeStatus?.connected == true
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isConnected) MintGreenLight else Color(0xFFF1F5F9))
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = if (isConnected) "Connected" else "Disconnected",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isConnected) MintGreenDark else TextMuted
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        if (youtubeStatus?.connected == true) {
-                            // Channel details
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(BackgroundCanvas)
-                                    .padding(14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "${youtubeStatus?.subscriberCount ?: 1240}",
-                                        fontSize = 17.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextPrimary
-                                    )
-                                    Text("Subscribers", fontSize = 11.sp, color = TextSecondary)
-                                }
-                                Column {
-                                    Text(
-                                        text = "${youtubeStatus?.videoCount ?: 18}",
-                                        fontSize = 17.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextPrimary
-                                    )
-                                    Text("Shorts Uploaded", fontSize = 11.sp, color = TextSecondary)
-                                }
-                                Column {
-                                    Text("Active", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MintGreenDark)
-                                    Text("Status", fontSize = 11.sp, color = TextSecondary)
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            OutlinedButton(
-                                onClick = {
-                                    isConnectingYouTube = true
-                                    scope.launch {
-                                        repository.disconnectYouTube().collect { res ->
-                                            isConnectingYouTube = false
-                                            res.onSuccess {
-                                                youtubeStatus = YouTubeStatusResponse(connected = false)
-                                                Toast.makeText(context, "YouTube channel disconnected", Toast.LENGTH_SHORT).show()
-                                            }.onFailure {
-                                                youtubeStatus = YouTubeStatusResponse(connected = false)
-                                                Toast.makeText(context, "YouTube channel disconnected", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(46.dp),
-                                shape = RoundedCornerShape(23.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444))
-                            ) {
-                                Text("Disconnect Channel", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                            }
-                        } else {
-                            Text(
-                                text = "Link your YouTube channel to enable autonomous 9:16 Shorts publishing and scheduled morning releases.",
-                                fontSize = 12.sp,
-                                color = TextSecondary,
-                                lineHeight = 18.sp
-                            )
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Button(
-                                onClick = {
-                                    showConnectDialog = true
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(24.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE50914)),
-                                enabled = !isConnectingYouTube
-                            ) {
-                                if (isConnectingYouTube) {
-                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
-                                } else {
-                                    Text("▶", fontSize = 14.sp)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Connect YouTube Channel", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                }
-                            }
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = TextWhite,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Text(
+                    text = "Profile & Settings",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextWhite
+                )
             }
 
-            // 2. Backend Server Connection Card
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = 3.dp, shape = RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White)
-                        .padding(20.dp)
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 2. Scrollable Settings Feed
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // User Profile Header Card with Tap-to-Edit
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color(0x337C3AED))
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0xFF1E1738), Color(0xFF130E26))
+                                )
+                            )
+                            .border(1.dp, specularBorder, RoundedCornerShape(20.dp))
+                            .bounceClick(scaleDown = 0.97f, onClick = { showEditProfileDialog = true })
+                            .padding(18.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // Avatar initial
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(56.dp)
                                     .clip(CircleShape)
-                                    .background(MintGreenLight),
+                                    .background(
+                                        Brush.linearGradient(
+                                            colors = listOf(PurplePrimary, PurpleDeep)
+                                        )
+                                    )
+                                    .border(2.dp, PurpleAccent, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Lan, contentDescription = null, tint = MintGreenPrimary, modifier = Modifier.size(20.dp))
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Backend API Endpoint", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
-                                Text("FastAPI Server on your Local Network", fontSize = 11.sp, color = TextSecondary)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            FilterChip(
-                                selected = serverHost == "http://192.168.0.101:8000",
-                                onClick = {
-                                    serverHost = "http://192.168.0.101:8000"
-                                    ApiClient.setHost(serverHost)
-                                },
-                                label = { Text("PC Wi-Fi (Local)") }
-                            )
-                            FilterChip(
-                                selected = serverHost.contains("onrender.com") || serverHost.contains("railway"),
-                                onClick = {
-                                    serverHost = "https://thoughtflow-api.onrender.com"
-                                    ApiClient.setHost(serverHost)
-                                },
-                                label = { Text("Cloud 24/7 Server") }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        OutlinedTextField(
-                            value = serverHost,
-                            onValueChange = { serverHost = it },
-                            label = { Text("Host Address (IP or Cloud URL)") },
-                            placeholder = { Text("https://your-app.onrender.com") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            singleLine = true
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Button(
-                                onClick = {
-                                    ApiClient.setHost(serverHost)
-                                    isTestingConnection = true
-                                    connectionStatus = null
-                                    scope.launch {
-                                        repository.getDashboard().collect { res ->
-                                            isTestingConnection = false
-                                            res.onSuccess {
-                                                connectionStatus = "Connected (Online)"
-                                                Toast.makeText(context, "Successfully connected to ThoughtFlow backend!", Toast.LENGTH_SHORT).show()
-                                            }.onFailure {
-                                                connectionStatus = "Failed to connect: ${it.message}"
-                                                Toast.makeText(context, "Connection failed: ${it.message}", Toast.LENGTH_LONG).show()
-                                            }
-                                        }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(46.dp),
-                                shape = RoundedCornerShape(23.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MintGreenPrimary),
-                                enabled = !isTestingConnection
-                            ) {
-                                if (isTestingConnection) {
-                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp))
-                                } else {
-                                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Test & Save", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                }
-                            }
-                        }
-
-                        // Offline Cache Status
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFF8FAFC))
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("⚡", fontSize = 14.sp)
-                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "Offline Cache Active",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = TextPrimary
+                                    text = userInitial,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextWhite
                                 )
                             }
-                            Text(
-                                "${com.thoughtflow.ai.data.local.LocalCacheManager.getCachedThoughtCount()} Thoughts • ${com.thoughtflow.ai.data.local.LocalCacheManager.getCachedVideoCount()} Videos",
-                                fontSize = 11.sp,
-                                color = MintGreenDark,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
 
-                        if (connectionStatus != null) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            val isOk = connectionStatus?.startsWith("Connected") == true
-                            Text(
-                                text = connectionStatus ?: "",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (isOk) MintGreenPrimary else Color(0xFFEF4444)
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = userName,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextWhite
+                                )
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = userEmail,
+                                    fontSize = 13.sp,
+                                    color = TextSecondary
+                                )
+                            }
+
+                            // Edit Icon
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Profile",
+                                tint = PurpleAccent,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
                 }
-            }
 
-            // 3. Automation Preferences Card
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White)
-                        .padding(20.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text("Autonomous Engine Preferences", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Auto-Publish YouTube Shorts", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary)
-                                Text("Upload scheduled video every morning at 9 AM", fontSize = 11.sp, color = TextSecondary)
-                            }
-                            Switch(
-                                checked = autoPublishEnabled,
-                                onCheckedChange = { autoPublishEnabled = it },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = MintGreenPrimary)
+                // General Preferences Section
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(8.dp, RoundedCornerShape(20.dp), spotColor = Color(0x20000000))
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0xFF1A1432), Color(0xFF120E25))
+                                )
                             )
-                        }
+                            .border(1.dp, specularBorder, RoundedCornerShape(20.dp))
+                    ) {
+                        SettingsMenuItem(
+                            icon = Icons.Outlined.Person,
+                            title = "Account Settings",
+                            onClick = { showEditProfileDialog = true }
+                        )
 
-                        HorizontalDivider(color = Color(0xFFF1F5F9))
+                        HorizontalDivider(color = CardBorder, thickness = 0.5.dp)
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("High-Fidelity AI Narration", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPrimary)
-                                Text("Synthesize natural voiceover for thoughts", fontSize = 11.sp, color = TextSecondary)
+                        val isYtLinked = ytStatus?.connected == true
+                        SettingsMenuItem(
+                            icon = Icons.Outlined.SmartDisplay,
+                            title = "YouTube Channel",
+                            trailingBadge = if (isYtLinked) (ytStatus?.channelTitle?.take(16) ?: "Connected") else "Not Linked",
+                            badgeColor = if (isYtLinked) StatusGreen else StatusAmber,
+                            onClick = onNavigateToYouTube
+                        )
+
+                        HorizontalDivider(color = CardBorder, thickness = 0.5.dp)
+
+                        SettingsMenuItem(
+                            icon = Icons.Outlined.Notifications,
+                            title = "Notifications",
+                            trailingBadge = if (notificationsEnabled) "Active" else "Muted",
+                            badgeColor = if (notificationsEnabled) StatusGreen else TextMuted,
+                            onClick = {
+                                notificationsEnabled = !notificationsEnabled
+                                Toast.makeText(
+                                    context,
+                                    if (notificationsEnabled) "Notifications enabled" else "Notifications muted",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
-                            Switch(
-                                checked = voiceNarrationEnabled,
-                                onCheckedChange = { voiceNarrationEnabled = it },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = MintGreenPrimary)
-                            )
-                        }
+                        )
+
+                        HorizontalDivider(color = CardBorder, thickness = 0.5.dp)
+
+                        SettingsMenuItem(
+                            icon = Icons.Outlined.Palette,
+                            title = "App Theme",
+                            trailingText = selectedTheme,
+                            onClick = { showThemeDialog = true }
+                        )
+
+                        HorizontalDivider(color = CardBorder, thickness = 0.5.dp)
+
+                        SettingsMenuItem(
+                            icon = Icons.Outlined.Language,
+                            title = "Language",
+                            trailingText = selectedLanguage,
+                            onClick = { showLanguageDialog = true }
+                        )
                     }
                 }
-            }
 
-            // 4. Over-The-Air (OTA) Updates & Releases
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White)
-                        .padding(20.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .background(MintGreenLight),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                // Automation & Operations Section
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(8.dp, RoundedCornerShape(20.dp), spotColor = Color(0x20000000))
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0xFF1A1432), Color(0xFF120E25))
+                                )
+                            )
+                            .border(1.dp, specularBorder, RoundedCornerShape(20.dp))
+                    ) {
+                        SettingsMenuItem(
+                            icon = Icons.Outlined.AutoAwesome,
+                            title = "Automation Settings",
+                            onClick = onNavigateToAutomation
+                        )
+
+                        HorizontalDivider(color = CardBorder, thickness = 0.5.dp)
+
+                        SettingsMenuItem(
+                            icon = Icons.Outlined.Dns,
+                            title = "Execution Logs",
+                            onClick = onNavigateToLogs
+                        )
+
+                        HorizontalDivider(color = CardBorder, thickness = 0.5.dp)
+
+                        SettingsMenuItem(
+                            icon = Icons.AutoMirrored.Outlined.HelpOutline,
+                            title = "Help & Support",
+                            trailingBadge = "Syed Ziyan",
+                            badgeColor = Color(0xFF38BDF8),
+                            onClick = { showHelpDialog = true }
+                        )
+
+                        HorizontalDivider(color = CardBorder, thickness = 0.5.dp)
+
+                        SettingsMenuItem(
+                            icon = Icons.Outlined.Info,
+                            title = "About ThoughtFlow AI",
+                            trailingText = "v1.1.0 Elite",
+                            onClick = { showAboutDialog = true }
+                        )
+                    }
+                }
+
+                // In-App OTA Update & Cloud Server Card
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color(0x407C3AED))
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0xFF221A45), Color(0xFF140E2D))
+                                )
+                            )
+                            .border(1.dp, PurpleAccent.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                            .padding(18.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         imageVector = Icons.Default.SystemUpdate,
                                         contentDescription = null,
-                                        tint = MintGreenPrimary,
+                                        tint = PurplePrimary,
                                         modifier = Modifier.size(20.dp)
                                     )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = "In-App Updates (OTA)",
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = TextPrimary
-                                    )
-                                    Text(
-                                        text = "Installed: v${updateState.installedVersionName} (Build ${updateState.installedVersionCode})",
-                                        fontSize = 11.sp,
-                                        color = TextSecondary
+                                        color = TextWhite
                                     )
                                 }
-                            }
 
-                            // Status badge
-                            val badgeText = when {
-                                updateState.isChecking -> "Checking..."
-                                updateState.isDownloading -> "${updateState.downloadProgress}%"
-                                updateState.isUpdateAvailable -> "Update Ready"
-                                else -> "Up to date"
-                            }
-                            val badgeColor = when {
-                                updateState.isUpdateAvailable -> MintGreenPrimary
-                                updateState.isDownloading -> MintGreenLight
-                                else -> Color(0xFFF1F5F9)
-                            }
-                            val badgeTextColor = when {
-                                updateState.isUpdateAvailable -> Color(0xFF0F172A)
-                                else -> TextPrimary
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(badgeColor)
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
                                 Text(
-                                    text = badgeText,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = badgeTextColor
+                                    text = "v1.0.9",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = PurpleAccent
                                 )
                             }
-                        }
 
-                        // Update Details if available
-                        if (updateState.isUpdateAvailable && updateState.latestVersionInfo != null) {
-                            val info = updateState.latestVersionInfo!!
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Color(0xFF0F172A))
-                                    .padding(14.dp)
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedTextField(
+                                value = serverHost,
+                                onValueChange = {
+                                    serverHost = it
+                                    ApiClient.setHost(it)
+                                },
+                                label = { Text("Backend Host / Cloud URL", fontSize = 11.sp, color = TextSecondary) },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = CardSurface,
+                                    unfocusedContainerColor = CardSurface,
+                                    focusedTextColor = TextWhite,
+                                    unfocusedTextColor = TextWhite,
+                                    focusedBorderColor = PurplePrimary,
+                                    unfocusedBorderColor = CardBorder
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(CardSurface)
+                                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                                        .bounceClick(scaleDown = 0.95f, onClick = {
+                                            isCheckingUpdates = true
+                                            scope.launch {
+                                                AppUpdateManager.checkForUpdates(context, silent = false)
+                                                isCheckingUpdates = false
+                                                Toast.makeText(
+                                                    context,
+                                                    updateState.statusMessage ?: "Up to date!",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (isCheckingUpdates) "Checking..." else "Check Update",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextWhite
+                                    )
+                                }
+
+                                if (updateState.isUpdateAvailable) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(PurplePrimary, PurpleDark)
+                                                )
+                                            )
+                                            .bounceClick(scaleDown = 0.95f, onClick = {
+                                                scope.launch {
+                                                    AppUpdateManager.downloadAndInstall(context)
+                                                }
+                                            }),
+                                        contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "🚀 New Version: v${info.versionName}",
+                                            text = "Install Now",
+                                            fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            color = Color.White
-                                        )
-                                        Text(
-                                            text = "${info.fileSizeMb} MB",
-                                            fontSize = 12.sp,
-                                            color = MintGreenLight,
-                                            fontWeight = FontWeight.SemiBold
+                                            color = TextWhite
                                         )
                                     }
-                                    if (info.releaseNotes.isNotBlank()) {
-                                        Text(
-                                            text = info.releaseNotes,
-                                            fontSize = 12.sp,
-                                            color = Color(0xFFCBD5E1),
-                                            lineHeight = 16.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Downloading Progress Bar
-                        if (updateState.isDownloading) {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "Downloading APK update package...",
-                                        fontSize = 12.sp,
-                                        color = TextSecondary
-                                    )
-                                    Text(
-                                        text = "${updateState.downloadProgress}%",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MintGreenDark
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(6.dp))
-                                LinearProgressIndicator(
-                                    progress = { updateState.downloadProgress / 100f },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp)),
-                                    color = MintGreenPrimary,
-                                    trackColor = Color(0xFFE2E8F0)
-                                )
-                            }
-                        }
-
-                        // Action Buttons
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch {
-                                        AppUpdateManager.checkForUpdates(context, silent = false)
-                                        Toast.makeText(
-                                            context,
-                                            updateState.statusMessage ?: "Checked for updates",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(44.dp),
-                                shape = RoundedCornerShape(22.dp),
-                                enabled = !updateState.isChecking && !updateState.isDownloading
-                            ) {
-                                if (updateState.isChecking) {
-                                    CircularProgressIndicator(modifier = Modifier.size(16.dp))
-                                } else {
-                                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Check Now", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                                }
-                            }
-
-                            if (updateState.isUpdateAvailable) {
-                                Button(
-                                    onClick = {
-                                        scope.launch {
-                                            AppUpdateManager.downloadAndInstall(context)
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .weight(1.3f)
-                                        .height(44.dp),
-                                    shape = RoundedCornerShape(22.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MintGreenPrimary),
-                                    enabled = !updateState.isDownloading
-                                ) {
-                                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (updateState.isReadyToInstall) "Install Now" else "Update Now",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF0F172A)
-                                    )
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // 5. System Info
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color.White)
-                        .padding(18.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("System Architecture", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
-                        Text("• Native Jetpack Compose UI (Material 3)", fontSize = 12.sp, color = TextSecondary)
-                        Text("• Fast Canvas Rendering with Topographical Gradients", fontSize = 12.sp, color = TextSecondary)
-                        Text("• Hexagon Elevated Floating Dock & Micro-interactions", fontSize = 12.sp, color = TextSecondary)
-                        Text("• Multi-provider Video Compilation (MoviePy + OpenCV)", fontSize = 12.sp, color = TextSecondary)
-                        Text("• Version 1.0.0 (Build 2026.10)", fontSize = 11.sp, color = TextMuted)
+                // Sign In / Sign Out Button with spring physics
+                item {
+                    val loggedIn = LocalCacheManager.isLoggedIn()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .shadow(
+                                12.dp,
+                                RoundedCornerShape(14.dp),
+                                spotColor = if (loggedIn) Color(0x40EF4444) else Color(0x607C3AED)
+                            )
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                if (loggedIn) Brush.linearGradient(listOf(StatusRed, Color(0xFFB91C1C)))
+                                else Brush.horizontalGradient(listOf(PurplePrimary, PurpleDark))
+                            )
+                            .bounceClick(scaleDown = 0.96f, onClick = onSignOut),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (loggedIn) "Sign Out of Creator Account" else "Sign In with Real ID",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextWhite
+                        )
                     }
                 }
             }
         }
-    }
 
-    if (showConnectDialog) {
-        AlertDialog(
-            onDismissRequest = { showConnectDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+        // Tap-to-Edit Profile Dialog
+        if (showEditProfileDialog) {
+            var tempName by remember { mutableStateOf(userName) }
+            var tempEmail by remember { mutableStateOf(userEmail) }
+
+            AlertDialog(
+                onDismissRequest = { showEditProfileDialog = false },
+                title = { Text("Edit Profile", color = TextWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = tempName,
+                            onValueChange = { tempName = it },
+                            label = { Text("Full Name", color = TextSecondary) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = TextWhite,
+                                unfocusedTextColor = TextWhite,
+                                focusedBorderColor = PurplePrimary,
+                                unfocusedBorderColor = CardBorder
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = tempEmail,
+                            onValueChange = { tempEmail = it },
+                            label = { Text("Email", color = TextSecondary) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = TextWhite,
+                                unfocusedTextColor = TextWhite,
+                                focusedBorderColor = PurplePrimary,
+                                unfocusedBorderColor = CardBorder
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (tempName.isNotBlank()) {
+                                userName = tempName.trim()
+                                LocalCacheManager.setUserName(userName)
+                            }
+                            if (tempEmail.isNotBlank()) {
+                                userEmail = tempEmail.trim()
+                                LocalCacheManager.setUserEmail(userEmail)
+                            }
+                            showEditProfileDialog = false
+                            Toast.makeText(context, "Profile updated!", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Save")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showEditProfileDialog = false }) {
+                        Text("Cancel", color = TextSecondary)
+                    }
+                },
+                containerColor = CardSurfaceElevated,
+                shape = RoundedCornerShape(20.dp)
+            )
+        }
+
+        // Help & Support Dialog (Syed Ziyan)
+        if (showHelpDialog) {
+            AlertDialog(
+                onDismissRequest = { showHelpDialog = false },
+                icon = {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(52.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFFFE4E6)),
+                            .background(Color(0xFF38BDF8).copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("▶", color = Color(0xFFE50914), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
+                            contentDescription = null,
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text("Connect YouTube", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                },
+                title = {
                     Text(
-                        "Choose how you want to connect your YouTube channel for publishing:",
-                        fontSize = 13.sp,
-                        color = TextSecondary,
-                        lineHeight = 18.sp
+                        text = "Help & Support",
+                        color = TextWhite,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
-
-                    // Option 1: Official Google OAuth
-                    Card(
-                        onClick = {
-                            isConnectingYouTube = true
-                            showConnectDialog = false
-                            scope.launch {
-                                repository.connectYouTube().collect { res ->
-                                    isConnectingYouTube = false
-                                    res.onSuccess { conn ->
-                                        if (conn.authUrl != null && conn.configured) {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(conn.authUrl))
-                                            context.startActivity(intent)
-                                        } else {
-                                            showOAuthConfigNotice = true
-                                        }
-                                    }.onFailure {
-                                        Toast.makeText(context, "Connection failed: ${it.message}", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = BackgroundCanvas)
+                },
+                text = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Text(
+                            text = "Need help with video rendering, YouTube uploads, or feature requests? Contact creator Syed Ziyan directly:",
+                            fontSize = 13.sp,
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(CardSurface)
+                                .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("🌐", fontSize = 22.sp)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Sign In with Google", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
-                                Text("Link your real YouTube account via OAuth", fontSize = 11.sp, color = TextSecondary)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Email, contentDescription = null, tint = PurpleAccent, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "syedziyan9966@gmail.com",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextWhite
+                                )
+                            }
+                        }
+
+                        // Send Email Button
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = PurplePrimary)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(PurplePrimary, Color(0xFF38BDF8))
+                                    )
+                                )
+                                .bounceClick(scaleDown = 0.96f, onClick = {
+                                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                        data = Uri.parse("mailto:syedziyan9966@gmail.com")
+                                        putExtra(Intent.EXTRA_SUBJECT, "ThoughtFlow AI - Support & Feedback")
+                                        putExtra(Intent.EXTRA_TEXT, "Hello Syed Ziyan,\n\nI need help with:\n")
+                                    }
+                                    try {
+                                        context.startActivity(emailIntent)
+                                    } catch (e: Exception) {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        clipboard.setPrimaryClip(ClipData.newPlainText("Support Email", "syedziyan9966@gmail.com"))
+                                        Toast.makeText(context, "Copied syedziyan9966@gmail.com to clipboard!", Toast.LENGTH_LONG).show()
+                                    }
+                                    showHelpDialog = false
+                                }),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Email Syed Ziyan", fontWeight = FontWeight.Bold, color = TextWhite, fontSize = 13.5.sp)
+                        }
+
+                        // Copy Email Button
+                        TextButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Support Email", "syedziyan9966@gmail.com"))
+                                Toast.makeText(context, "Copied syedziyan9966@gmail.com to clipboard!", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Copy Email to Clipboard", color = TextSecondary, fontSize = 12.sp)
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showHelpDialog = false }) {
+                        Text("Close", color = PurpleAccent, fontWeight = FontWeight.SemiBold)
+                    }
+                },
+                containerColor = CardSurfaceElevated,
+                shape = RoundedCornerShape(22.dp)
+            )
+        }
+
+        // About ThoughtFlow AI Dialog
+        if (showAboutDialog) {
+            AlertDialog(
+                onDismissRequest = { showAboutDialog = false },
+                icon = {
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .shadow(12.dp, CircleShape, spotColor = PurplePrimary)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(PurplePrimary, Color(0xFFE11D48))
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("TF", fontWeight = FontWeight.Black, fontSize = 20.sp, color = TextWhite)
+                    }
+                },
+                title = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        Text("ThoughtFlow AI Elite", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("Version 1.1.0 (Build 11)", color = PurpleAccent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                },
+                text = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Autonomous AI-powered Shorts, Reels, and Photo Quote Studio. Designed for creators who demand elite visual aesthetics and effortless YouTube publishing.",
+                            fontSize = 12.5.sp,
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center
+                        )
+
+                        HorizontalDivider(color = CardBorder, thickness = 0.5.dp)
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(CardSurface)
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Lead Creator", fontSize = 12.sp, color = TextMuted)
+                                Text("Syed Ziyan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Developer Contact", fontSize = 12.sp, color = TextMuted)
+                                Text("syedziyan9966@gmail.com", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF38BDF8))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Video Engine", fontSize = 12.sp, color = TextMuted)
+                                Text("FFmpeg 9:16 + VideoPlayerView", fontSize = 12.sp, color = TextWhite)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("OTA Delivery", fontSize = 12.sp, color = TextMuted)
+                                Text("Live In-App Updater", fontSize = 12.sp, color = StatusGreen)
                             }
                         }
                     }
-
-                    // Option 2: Test Demo Channel
-                    Card(
-                        onClick = {
-                            isConnectingYouTube = true
-                            showConnectDialog = false
-                            scope.launch {
-                                repository.simulateYouTubeConnect().collect { simRes ->
-                                    isConnectingYouTube = false
-                                    simRes.onSuccess { status ->
-                                        youtubeStatus = status
-                                        Toast.makeText(context, "Connected to demo channel: ${status.channelTitle}", Toast.LENGTH_SHORT).show()
-                                    }.onFailure {
-                                        Toast.makeText(context, "Demo connection failed: ${it.message}", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4))
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { showAboutDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("🧪", fontSize = 22.sp)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Connect Demo Channel", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MintGreenDark)
-                                Text("Simulated channel for app testing", fontSize = 11.sp, color = TextSecondary)
+                        Text("Close")
+                    }
+                },
+                containerColor = CardSurfaceElevated,
+                shape = RoundedCornerShape(22.dp)
+            )
+        }
+
+        // App Theme Dialog
+        if (showThemeDialog) {
+            val themes = listOf(
+                "Dark Luxury (Signature)" to PurplePrimary,
+                "Cyber Neon Cyan" to Color(0xFF06B6D4),
+                "Sunset Coral & Gold" to Color(0xFFF97316),
+                "Emerald Zen" to Color(0xFF10B981)
+            )
+            AlertDialog(
+                onDismissRequest = { showThemeDialog = false },
+                title = { Text("Choose App Theme", color = TextWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        themes.forEach { (name, color) ->
+                            val isSelected = selectedTheme == name
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) color.copy(alpha = 0.2f) else Color.Transparent)
+                                    .border(1.dp, if (isSelected) color else CardBorder, RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        selectedTheme = name
+                                        showThemeDialog = false
+                                        Toast.makeText(context, "Theme set to $name", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clip(CircleShape)
+                                            .background(color)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(name, color = TextWhite, fontSize = 13.5.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                                }
+                                if (isSelected) {
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+                                }
                             }
                         }
                     }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showConnectDialog = false }) {
-                    Text("Cancel", color = TextSecondary)
-                }
-            },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(20.dp)
-        )
+                },
+                confirmButton = {
+                    TextButton(onClick = { showThemeDialog = false }) {
+                        Text("Done", color = PurpleAccent)
+                    }
+                },
+                containerColor = CardSurfaceElevated,
+                shape = RoundedCornerShape(20.dp)
+            )
+        }
+
+        // Language Dialog
+        if (showLanguageDialog) {
+            val languages = listOf("English", "Hindi (हिन्दी)", "Spanish (Español)", "French (Français)", "German (Deutsch)")
+            AlertDialog(
+                onDismissRequest = { showLanguageDialog = false },
+                title = { Text("Choose Language", color = TextWhite, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        languages.forEach { lang ->
+                            val isSelected = selectedLanguage.startsWith(lang.split(" ")[0])
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) PurplePrimary.copy(alpha = 0.2f) else Color.Transparent)
+                                    .border(1.dp, if (isSelected) PurplePrimary else CardBorder, RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        selectedLanguage = lang
+                                        showLanguageDialog = false
+                                        Toast.makeText(context, "Language updated to $lang", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(lang, color = TextWhite, fontSize = 13.5.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                                if (isSelected) {
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = PurpleAccent, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLanguageDialog = false }) {
+                        Text("Done", color = PurpleAccent)
+                    }
+                },
+                containerColor = CardSurfaceElevated,
+                shape = RoundedCornerShape(20.dp)
+            )
+        }
     }
+}
 
-    if (showOAuthConfigNotice) {
-        AlertDialog(
-            onDismissRequest = { showOAuthConfigNotice = false },
-            title = { Text("Google OAuth Credentials Needed", fontWeight = FontWeight.Bold, fontSize = 17.sp) },
-            text = {
-                Text(
-                    "To link a real Google account, GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in the backend .env file.\n\nYou can use the Demo Channel option to test all YouTube Shorts features right now without API credentials.",
-                    fontSize = 13.sp,
-                    color = TextSecondary,
-                    lineHeight = 18.sp
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showOAuthConfigNotice = false
-                        isConnectingYouTube = true
-                        scope.launch {
-                            repository.simulateYouTubeConnect().collect { simRes ->
-                                isConnectingYouTube = false
-                                simRes.onSuccess { status ->
-                                    youtubeStatus = status
-                                    Toast.makeText(context, "Connected to demo channel: ${status.channelTitle}", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MintGreenDark)
+@Composable
+private fun SettingsMenuItem(
+    icon: ImageVector,
+    title: String,
+    trailingBadge: String? = null,
+    badgeColor: Color = StatusGreen,
+    trailingText: String? = null,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bounceClick(scaleDown = 0.98f, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f, fill = false)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(14.dp))
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextWhite,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (trailingBadge != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(badgeColor.copy(alpha = 0.15f))
+                        .border(0.8.dp, badgeColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
-                    Text("Use Demo Channel")
+                    Text(
+                        text = trailingBadge,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = badgeColor,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showOAuthConfigNotice = false }) {
-                    Text("Dismiss", color = TextSecondary)
-                }
-            },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(20.dp)
-        )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            if (trailingText != null) {
+                Text(
+                    text = trailingText,
+                    fontSize = 13.sp,
+                    color = TextMuted,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = TextMuted,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }

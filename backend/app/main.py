@@ -169,7 +169,7 @@ def get_app_version():
     version_file = Path(__file__).resolve().parent / "version_info.json"
     if version_file.exists():
         try:
-            with open(version_file, "r", encoding="utf-8") as f:
+            with open(version_file, "r", encoding="utf-8-sig") as f:
                 data = json.load(f)
                 data["file_size_mb"] = file_size_mb
                 return data

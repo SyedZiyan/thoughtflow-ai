@@ -59,7 +59,7 @@ def preview_frame(
         png_bytes = video_renderer.compose_slide_preview(
             thought_text=req.thought_text,
             theme=req.theme or "motivation",
-            visual_theme=req.visual_theme or "gradient_purple",
+            visual_theme=req.visual_theme or "mountain_summit",
             typography=req.typography or "modern_sans",
             text_placement=req.text_placement or "center"
         )
@@ -101,7 +101,7 @@ async def render_video(
             thought_id=thought.id,
             thought_text=thought.text,
             theme=thought.theme,
-            visual_theme=req.visual_theme or "gradient_purple",
+            visual_theme=req.visual_theme or "mountain_summit",
             animation_style=req.animation_style or "smooth_zoom",
             typography=req.typography or "modern_sans",
             text_placement=req.text_placement or "center",

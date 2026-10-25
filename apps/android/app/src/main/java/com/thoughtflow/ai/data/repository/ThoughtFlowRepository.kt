@@ -102,6 +102,15 @@ class ThoughtFlowRepository {
         }
     }.flowOn(Dispatchers.IO)
 
+    fun linkYouTubeChannel(req: LinkChannelRequest): Flow<Result<YouTubeStatusResponse>> = flow {
+        try {
+            val res = api.linkYouTubeChannel(req)
+            emit(Result.success(res))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
     fun simulateYouTubeConnect(channelName: String = "ThoughtFlow Motivation Official"): Flow<Result<YouTubeStatusResponse>> = flow {
         try {
             val res = api.simulateYouTubeConnect(channelName)
@@ -129,6 +138,52 @@ class ThoughtFlowRepository {
             emit(Result.success(res))
         } catch (e: Exception) {
             emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // --- Authentication (Real ID) ---
+    fun login(email: String, password: String): Flow<Result<AuthResponse>> = flow {
+        try {
+            val res = api.login(LoginRequest(email = email.trim(), password = password))
+            LocalCacheManager.setAuthToken(res.accessToken)
+            LocalCacheManager.setUserEmail(res.user.email)
+            ApiClient.reset()
+            emit(Result.success(res))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    fun register(email: String, password: String, name: String? = null): Flow<Result<AuthResponse>> = flow {
+        try {
+            val res = api.register(LoginRequest(email = email.trim(), password = password))
+            LocalCacheManager.setAuthToken(res.accessToken)
+            LocalCacheManager.setUserEmail(res.user.email)
+            if (!name.isNullOrBlank()) {
+                LocalCacheManager.setUserName(name.trim())
+            }
+            ApiClient.reset()
+            emit(Result.success(res))
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    // --- Analytics (Real Dynamic Data) ---
+    fun getAnalytics(): Flow<Result<AnalyticsResponse>> = flow {
+        try {
+            val res = api.getAnalytics()
+            LocalCacheManager.saveAnalytics(res)
+            LocalCacheManager.markOnline()
+            emit(Result.success(res))
+        } catch (e: Exception) {
+            LocalCacheManager.markOffline()
+            val cached = LocalCacheManager.getAnalytics()
+            if (cached != null) {
+                emit(Result.success(cached))
+            } else {
+                emit(Result.failure(e))
+            }
         }
     }.flowOn(Dispatchers.IO)
 }

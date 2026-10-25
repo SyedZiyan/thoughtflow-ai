@@ -41,6 +41,10 @@ object ApiClient {
         instance = null
     }
 
+    fun reset() {
+        instance = null
+    }
+
     private var instance: ThoughtFlowApi? = null
 
     val api: ThoughtFlowApi
@@ -51,6 +55,14 @@ object ApiClient {
                 }
 
                 val client = OkHttpClient.Builder()
+                    .addInterceptor { chain ->
+                        val requestBuilder = chain.request().newBuilder()
+                        val token = com.thoughtflow.ai.data.local.LocalCacheManager.getAuthToken()
+                        if (!token.isNullOrBlank()) {
+                            requestBuilder.addHeader("Authorization", "Bearer $token")
+                        }
+                        chain.proceed(requestBuilder.build())
+                    }
                     .addInterceptor(logging)
                     .connectTimeout(15, TimeUnit.SECONDS)
                     .readTimeout(60, TimeUnit.SECONDS)

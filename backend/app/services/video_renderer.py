@@ -14,6 +14,7 @@ from app.services.audio_service import (
     AmbientAudioSynthesizer,
     EdgeTTSProvider
 )
+from app.services.visual_art_service import visual_art_service
 
 logger = logging.getLogger("thoughtflow.video")
 
@@ -240,7 +241,7 @@ class VideoRendererService:
         return self._get_font(size, typography="editorial_serif", bold=True)
 
     def _create_base_canvas(self, visual_theme: str) -> Image.Image:
-        """Returns base 1080x1920 canvas using either photographic asset or gradient fallback"""
+        """Returns base 1080x1920 canvas using photographic asset, AI generated backdrop, or gradient fallback"""
         theme_cfg = self.THEMES.get(visual_theme, self.THEMES.get("cozy_balcony", {}))
         bg_dir = Path(__file__).resolve().parent.parent / "assets" / "backgrounds"
 
@@ -249,6 +250,18 @@ class VideoRendererService:
 
         if (not bg_path or not bg_path.exists()) and theme_cfg.get("fallback_bg"):
             bg_path = bg_dir / theme_cfg["fallback_bg"]
+
+        # If no local asset found, synthesize/fetch high-res visual via VisualArtService
+        if not bg_path or not bg_path.exists():
+            try:
+                ai_bg_path = visual_art_service.fetch_or_generate_backdrop(
+                    theme="motivation",
+                    visual_theme=visual_theme
+                )
+                if ai_bg_path and ai_bg_path.exists():
+                    bg_path = ai_bg_path
+            except Exception as e:
+                logger.warning(f"Visual art synthesis failed: {e}")
 
         if bg_path and bg_path.exists():
             try:
@@ -696,7 +709,7 @@ class VideoRendererService:
         self,
         thought_text: str,
         theme: str = "motivation",
-        visual_theme: str = "gradient_purple",
+        visual_theme: str = "mountain_summit",
         typography: str = "modern_sans",
         text_placement: str = "center"
     ) -> bytes:
@@ -717,7 +730,7 @@ class VideoRendererService:
         thought_id: str,
         thought_text: str,
         theme: str = "motivation",
-        visual_theme: str = "gradient_purple",
+        visual_theme: str = "mountain_summit",
         animation_style: str = "smooth_zoom",
         typography: str = "modern_sans",
         text_placement: str = "center",

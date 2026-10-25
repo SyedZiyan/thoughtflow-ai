@@ -120,10 +120,46 @@ data class YouTubeConnectResponse(
     val message: String? = null
 )
 
+data class LinkChannelRequest(
+    @SerializedName("channel_name") val channelName: String,
+    @SerializedName("channel_id") val channelId: String? = null,
+    @SerializedName("channel_handle") val channelHandle: String? = null,
+    @SerializedName("subscriber_count") val subscriberCount: Int? = 0,
+    @SerializedName("video_count") val videoCount: Int? = 0,
+    @SerializedName("view_count") val viewCount: Int? = 0
+)
+
 data class AppVersionInfo(
     @SerializedName("version_name") val versionName: String = "1.0.0",
     @SerializedName("version_code") val versionCode: Int = 1,
     @SerializedName("release_notes") val releaseNotes: String = "",
     @SerializedName("download_url") val downloadUrl: String = "/api/v1/app/download",
     @SerializedName("file_size_mb") val fileSizeMb: Double = 0.0
+)
+
+data class LoginRequest(
+    val email: String,
+    val password: String
+)
+
+data class AuthResponse(
+    @SerializedName("access_token") val accessToken: String,
+    @SerializedName("token_type") val tokenType: String = "bearer",
+    val user: UserInfo
+)
+
+data class UserInfo(
+    val id: String,
+    val email: String,
+    val role: String = "creator"
+)
+
+data class AnalyticsResponse(
+    @SerializedName("total_published_videos") val totalPublishedVideos: Int = 0,
+    @SerializedName("total_views") val totalViews: Int = 0,
+    @SerializedName("total_likes") val totalLikes: Int = 0,
+    @SerializedName("total_comments") val totalComments: Int = 0,
+    @SerializedName("success_rate") val successRate: Double = 100.0,
+    @SerializedName("performance_by_theme") val performanceByTheme: List<Map<String, Any>> = emptyList(),
+    @SerializedName("recent_uploads") val recentUploads: List<Map<String, Any>> = emptyList()
 )

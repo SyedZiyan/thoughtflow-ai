@@ -93,6 +93,21 @@ object LocalCacheManager {
     fun getCachedVideoCount(): Int = getVideos().size
     fun getCachedThoughtCount(): Int = getThoughts().size
 
+    // --- Analytics Cache ---
+    fun saveAnalytics(analytics: AnalyticsResponse) {
+        prefs?.edit()?.putString("cache_analytics", gson.toJson(analytics))?.apply()
+    }
+
+    fun getAnalytics(): AnalyticsResponse? {
+        val json = prefs?.getString("cache_analytics", null)
+        if (!json.isNullOrEmpty()) {
+            try {
+                return gson.fromJson(json, AnalyticsResponse::class.java)
+            } catch (_: Exception) {}
+        }
+        return null
+    }
+
     // --- Built-in Fallbacks for Instant Offline Launch ---
     private fun getFallbackDashboard(): DashboardResponse {
         return DashboardResponse(
@@ -217,5 +232,49 @@ object LocalCacheManager {
                 createdAt = "2 days ago"
             )
         )
+    }
+
+    // --- Auth Session & Token Storage ---
+    fun getAuthToken(): String? {
+        return prefs?.getString("auth_jwt_token", null)
+    }
+
+    fun setAuthToken(token: String?) {
+        prefs?.edit()?.putString("auth_jwt_token", token)?.apply()
+    }
+
+    fun isLoggedIn(): Boolean {
+        return !getAuthToken().isNullOrBlank()
+    }
+
+    fun clearSession() {
+        prefs?.edit()
+            ?.remove("auth_jwt_token")
+            ?.remove("profile_user_name")
+            ?.remove("profile_user_email")
+            ?.apply()
+    }
+
+    // --- User Profile Customization ---
+    fun getUserName(): String {
+        val name = prefs?.getString("profile_user_name", null)
+        if (!name.isNullOrBlank()) return name
+        val email = getUserEmail()
+        if (email.isNotBlank() && email.contains("@")) {
+            return email.substringBefore("@").replaceFirstChar { it.uppercase() }
+        }
+        return "Creator"
+    }
+
+    fun setUserName(name: String) {
+        prefs?.edit()?.putString("profile_user_name", name.trim())?.apply()
+    }
+
+    fun getUserEmail(): String {
+        return prefs?.getString("profile_user_email", "") ?: ""
+    }
+
+    fun setUserEmail(email: String) {
+        prefs?.edit()?.putString("profile_user_email", email.trim())?.apply()
     }
 }

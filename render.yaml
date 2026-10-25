@@ -1,19 +1,20 @@
 services:
   - type: web
-    name: thoughtflow-api
-    env: docker
-    region: oregon
-    plan: free
+    name: thoughtflow-backend
+    runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    healthCheckPath: /health
-    autoDeploy: true
+    plan: free
+    region: oregon
+    healthCheckPath: /api/v1/app/version
     envVars:
       - key: ENVIRONMENT
         value: production
+      - key: DEBUG
+        value: "False"
       - key: AI_PROVIDER
-        value: template
+        value: mock
       - key: YOUTUBE_UPLOAD_ENABLED
-        value: "false"
-      - key: CORS_ORIGINS
-        value: "*"
+        value: "True"
+      - key: DEFAULT_TIMEZONE
+        value: Asia/Kolkata

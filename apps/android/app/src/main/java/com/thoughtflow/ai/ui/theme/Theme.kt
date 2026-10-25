@@ -3,41 +3,44 @@ package com.thoughtflow.ai.ui.theme
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val LightColorScheme = lightColorScheme(
-    primary = MintGreenPrimary,
+private val DarkColorScheme = darkColorScheme(
+    primary = PurplePrimary,
     onPrimary = TextWhite,
-    primaryContainer = MintGreenSoft,
-    onPrimaryContainer = MintGreenDark,
-    secondary = CyanFab,
+    primaryContainer = PurpleSurface,
+    onPrimaryContainer = PurpleAccent,
+    secondary = PurpleAccent,
     onSecondary = TextWhite,
-    background = BackgroundCanvas,
-    onBackground = TextPrimary,
-    surface = SurfaceCard,
-    onSurface = TextPrimary,
-    surfaceVariant = SurfaceCardAlt,
+    background = DeepBackground,
+    onBackground = TextWhite,
+    surface = CardSurface,
+    onSurface = TextWhite,
+    surfaceVariant = CardSurfaceElevated,
     onSurfaceVariant = TextSecondary,
-    outline = BorderSubtle
+    outline = CardBorder
 )
 
 @Composable
 fun ThoughtFlowTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true, // Default to Dark luxury theme per UI design plan
     content: @Composable () -> Unit
 ) {
-    val colorScheme = LightColorScheme
+    val colorScheme = DarkColorScheme
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = BackgroundCanvas.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+            window.statusBarColor = DeepBackground.toArgb()
+            window.navigationBarColor = DeepBackground.toArgb()
+            // Set status bar icons to light (white icons)
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
         }
     }
 
