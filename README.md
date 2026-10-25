@@ -6,159 +6,92 @@
 
 <p align="center">
   <a href="https://github.com/SyedZiyan/thoughtflow-ai"><img src="https://img.shields.io/badge/Platform-Android_Native-blue.svg?style=for-the-badge&logo=android" alt="Android" /></a>
-  <a href="https://github.com/SyedZiyan/thoughtflow-ai"><img src="https://img.shields.io/badge/Backend-FastAPI_Python_3.11-009688.svg?style=for-the-badge&logo=fastapi" alt="FastAPI" /></a>
+  <a href="https://github.com/SyedZiyan/thoughtflow-ai"><img src="https://img.shields.io/badge/Backend-FastAPI_Python-009688.svg?style=for-the-badge&logo=fastapi" alt="FastAPI" /></a>
   <a href="https://github.com/SyedZiyan/thoughtflow-ai"><img src="https://img.shields.io/badge/Cloud-Render_24%2F7-46E3B7.svg?style=for-the-badge&logo=render" alt="Render" /></a>
-  <a href="https://github.com/SyedZiyan/thoughtflow-ai"><img src="https://img.shields.io/badge/Video-FFmpeg_9%3A16_Shorts-green.svg?style=for-the-badge&logo=ffmpeg" alt="FFmpeg" /></a>
-  <a href="https://github.com/SyedZiyan/thoughtflow-ai"><img src="https://img.shields.io/badge/YouTube-Data_API_v3-FF0000.svg?style=for-the-badge&logo=youtube" alt="YouTube" /></a>
-  <a href="https://github.com/SyedZiyan/thoughtflow-ai"><img src="https://img.shields.io/badge/OTA_Version-v1.3.0_Live-2563EB.svg?style=for-the-badge" alt="OTA Version" /></a>
+  <a href="https://github.com/SyedZiyan/thoughtflow-ai"><img src="https://img.shields.io/badge/YouTube-Automated_Shorts-FF0000.svg?style=for-the-badge&logo=youtube" alt="YouTube" /></a>
 </p>
 
 ---
 
-## 🌟 Overview
+## 🌟 What is ThoughtFlow AI?
 
-**ThoughtFlow AI** is a production-grade autonomous content engine and mobile creator studio. It crafts original motivational thoughts, procedurally renders high-impact photographic quote canvases and animated 9:16 vertical video shorts, and publishes them automatically to **YouTube Shorts** 24/7 via cloud workers.
+**ThoughtFlow AI** is an autonomous content creation platform that generates daily motivational wisdom, turns thoughts into high-resolution quote cards and animated 9:16 vertical videos, and automatically publishes them to **YouTube Shorts** 24/7.
 
-The platform includes a **Native Android Mobile App** (Kotlin + Jetpack Compose) styled in an ultra-clean **Obsidian Dark Studio** palette, accompanied by an in-app 9:16 Shorts video player, live procedural canvas, and an **In-App Over-The-Air (OTA) Auto-Updater**.
+It comes with a **Native Android Mobile App** built with Jetpack Compose in a modern **Obsidian Dark Studio** theme.
 
 ---
 
-## 📱 Real Device Glimpse
+## 📱 Mobile App Preview
 
-Captured directly from physical hardware:
+Captured live from physical Android hardware:
 
 <p align="center">
-  <img src="docs/assets/real_dashboard.png" width="31%" alt="Live Dashboard on Device" />
+  <img src="docs/assets/real_dashboard.png" width="31%" alt="Live Dashboard" />
   &nbsp;&nbsp;
-  <img src="docs/assets/real_quote_generator.png" width="31%" alt="Procedural Canvas on Device" />
+  <img src="docs/assets/real_quote_generator.png" width="31%" alt="Procedural Quote Canvas" />
   &nbsp;&nbsp;
-  <img src="docs/assets/real_settings.png" width="31%" alt="Profile & Settings on Device" />
+  <img src="docs/assets/real_settings.png" width="31%" alt="Profile & Settings" />
 </p>
 
-- **Left (Dashboard)**: Clean Obsidian Studio dark palette, dynamic user greeting, "Today's Thought" hero card, daily status counters, and instant generation controls.
-- **Center (Dynamic Quote Canvas)**: Procedural theme randomizer, photographic city skyline backdrop, torn sticker note with highlighted keywords, and instant 1080p Gallery export.
-- **Right (Profile & Settings)**: Integrated creator account, linked YouTube channel (`@its-Zynk`), automation scheduler, dark luxury theme, and direct support.
+| 1. Dashboard | 2. Quote Generator | 3. Settings & Channel |
+| :--- | :--- | :--- |
+| Daily motivational thought, real-time generation stats, and quick actions. | Live procedural quote canvas with scenic backdrops and 1080p Gallery export. | Creator profile, linked YouTube channel (`@its-Zynk`), and automation controls. |
 
 ---
 
-## 🎨 Procedural Dynamic Style Randomizer
+## ✨ Key Features
 
-Instead of static templates, ThoughtFlow features an algorithmic randomizer that creates over **11,700+ unique visual identities**:
-
-<p align="center">
-  <img src="docs/assets/procedural_styles.png" alt="Procedural Styles" width="100%" />
-</p>
-
-- **16 Scenic Backdrops**: Alpine Trail, Sunrise Summit, Balcony Sunset, Misty Redwood, Starry Cosmos, Golden Dunes, Rainy Evening Window, Classical Library, and Metropolis Night Glow.
-- **5 Layout Architectures**:
-  - *Torn Sticker Note*: Keyword highlighter box, organic craft drop shadow, and travel icons.
-  - *Vintage Storybook*: Classic serif editorial, gold floral flourishes (`— ❧ —`), and warm vignetting.
-  - *Retro Polaroid*: Authentic white frame, cursive script captions, and date stamp.
-  - *Swiss Editorial*: Minimalist typography, modern borders, and stark contrast.
-  - *Glassmorphic Frost*: Translucent frosted acrylic, specular borders, and quotation typography.
-- **7 Contrast Highlighters**: Sunburst Yellow, Matcha Mint, Warm Peach, Ice Cyan, Petal Rose, Amber Gold, and Lavender Frost.
-- **1080p Export**: High-resolution gallery export directly to device storage (`Pictures/ThoughtFlow`).
+- **🎲 Infinite Dynamic Style Randomizer**: Procedurally generates over 11,700+ unique visual themes across 16 real scenic backdrops, 5 layout styles (*Torn Sticker, Vintage Storybook, Retro Polaroid, Swiss Editorial, Frosted Glass*), and 7 accent highlighters.
+- **🎬 Automated 9:16 Video Shorts**: Converts thoughts into animated vertical videos with moving subtitles, dynamic backgrounds, and background music using FFmpeg.
+- **🚀 24/7 YouTube Automation**: Automatically renders and publishes daily Shorts to your linked YouTube channel on a schedule (e.g., 9:00 AM daily).
+- **📲 In-App Over-The-Air (OTA) Updates**: Update the mobile app directly on your phone with one tap without needing Google Play Store or USB cables.
+- **🔒 Privacy & Security**: Zero hardcoded secrets. All API keys and YouTube OAuth tokens are encrypted and managed securely via environment variables.
 
 ---
 
-## 🏛️ Architecture & System Design
+## 🛠️ Tech Stack
 
-```
-thoughtflow-ai/
-├── apps/
-│   ├── android/         # Native Android App (Kotlin, Compose, Media3 Video Player, In-App OTA)
-│   └── web/             # Creator Web Dashboard (React 18, Vite, Tailwind CSS, TanStack Query)
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/      # REST API (Thoughts, Videos, Studio, YouTube OAuth, App Updates)
-│   │   ├── core/        # Pydantic v2 settings, Fernet token encryption & JWT auth
-│   │   ├── db/          # SQLAlchemy session & SQLite/PostgreSQL engine
-│   │   ├── models/      # Database models (User, Thought, Video, Job, Integration)
-│   │   ├── schemas/     # Typed Pydantic request/response validation
-│   │   ├── services/    # VideoRenderer (Pillow + FFmpeg), YouTube Data API v3, AI Prompts
-│   │   └── prompts/     # Wisdom catalogs & thematic generators
-│   ├── Dockerfile       # Containerized backend with FFmpeg and system fonts
-│   └── requirements.txt
-├── worker/
-│   ├── scheduler.py     # Standalone 24/7 APScheduler automation worker
-│   └── Dockerfile
-├── storage/
-│   └── videos/          # Compiled 9:16 vertical MP4 video shorts
-├── docs/assets/         # Polished showcase assets & real device screenshots
-├── docker-compose.yml   # Multi-container orchestration (PostgreSQL + Backend + Worker + Web)
-├── render.yaml          # Zero-downtime 1-click cloud deployment blueprint (Render.com)
-└── publish_update.ps1   # 1-Click In-App OTA APK release publisher
-```
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Mobile App** | Kotlin, Jetpack Compose, Material 3 | High-performance native Android UI |
+| **Backend API** | Python 3.11, FastAPI, SQLAlchemy | REST API, thought generation & task scheduling |
+| **Video Engine** | FFmpeg, Pillow (PIL) | 9:16 vertical video composition & animation |
+| **Cloud Hosting** | Render.com, Docker | 24/7 automated background execution |
+| **Integrations** | YouTube Data API v3, Google Gemini AI | Video publishing & AI thought generation |
 
 ---
 
-## 🚀 Quickstart & Setup
+## 🚀 How to Run
 
-### 1. Backend Setup
+### 1. Run the Backend Locally
 ```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 ```
-- Interactive Swagger API: `http://localhost:8000/docs`
-- Health check: `http://localhost:8000/health`
-- Mobile APK Download Landing Page: `http://localhost:8000/download`
+- API Documentation: `http://localhost:8000/docs`
+- APK Download Page: `http://localhost:8000/download`
 
-### 2. Android Mobile Application
-Open `apps/android` in **Android Studio** or build from terminal:
+### 2. Build the Android App
+Open the `apps/android` folder in **Android Studio** and click **Run**, or build via terminal:
 ```powershell
 cd apps/android
 .\gradlew.bat assembleDebug
 ```
-The output APK is generated at:
+The APK will be generated at:
 `apps/android/app/build/outputs/apk/debug/app-debug.apk`
 
----
-
-## ☁️ 24/7 Cloud Deployment on Render
-
-The backend is fully configured for zero-cost 24/7 hosting on [Render.com](https://render.com) using [`render.yaml`](./render.yaml):
-
-1. Push this repository to GitHub.
-2. In Render, select **"New +"** > **"Web Service"** > Connect your repository.
-3. Select **Docker** environment. Render builds the container with FFmpeg and launches your 24/7 API.
-4. Add your private API keys in Render's **Environment** tab:
-   - `GEMINI_API_KEY`: *Your Google Gemini API key*
-   - `GOOGLE_CLIENT_ID`: *Your YouTube OAuth Client ID*
-   - `GOOGLE_CLIENT_SECRET`: *Your YouTube OAuth Secret*
-   - `YOUTUBE_UPLOAD_ENABLED`: `True`
+### 3. Deploy to Cloud (24/7 Execution)
+The repository includes a production-ready [`render.yaml`](./render.yaml):
+1. Create a free account on [Render.com](https://render.com).
+2. Click **New +** > **Web Service** > Connect your **`thoughtflow-ai`** GitHub repository.
+3. Select **Docker** runtime. Render will automatically build and host your API 24/7 with a free HTTPS URL.
+4. Add your `GEMINI_API_KEY` and YouTube credentials in Render's **Environment** tab.
 
 ---
 
-## 📲 In-App Over-The-Air (OTA) Updates
+## 📄 License
 
-ThoughtFlow AI features an integrated binary distribution pipeline:
-- Whenever you make code changes, run:
-  ```powershell
-  .\publish_update.ps1 -VersionName "1.4.0" -ReleaseNotes "Your new features"
-  ```
-- The backend automatically publishes the new APK metadata.
-- All active Android devices immediately display an **"Update Available"** card and update in-place with a single tap.
-
----
-
-## 🎬 YouTube Shorts Automation
-
-- **Direct Channel Linking**: Connect any creator channel by handle (`@ChannelName`) or Google OAuth 2.0.
-- **Scheduled Publishing**: Autonomous daily generation at 07:00 AM and automated upload at 09:00 AM.
-- **Smart Metadata**: Automatically generates SEO-optimized video titles, descriptions, and hashtags (`#shorts`, `#motivation`).
-
----
-
-## 🛡️ Privacy & Security
-
-- **Zero Hardcoded Secrets**: All tokens, client secrets, and API keys are stored in encrypted environment variables and excluded via `.gitignore`.
-- **Fernet Token Encryption**: All OAuth refresh tokens are encrypted at rest before storing in the database.
-
----
-
-<p align="center">
-  <b>ThoughtFlow AI</b> • Built with ❤️ for creators, dreamers, and builders.
-</p>
+This project is open-source and available under the **MIT License**.
