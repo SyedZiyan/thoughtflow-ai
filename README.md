@@ -94,4 +94,4 @@ The repository includes a production-ready [`render.yaml`](./render.yaml):
 
 ## 📄 License
 
-This project is open-source and available under the **MIT License**.
+This project is open-source and licensed under the [MIT License](LICENSE). Copyright (c) 2026 Syed Ziyan.
