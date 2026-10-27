@@ -66,6 +66,8 @@ fun FloatingBottomDock(
         label = "dock_sliding_capsule"
     )
 
+    val isLight = AppThemeManager.currentTheme.isLight
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -76,7 +78,11 @@ fun FloatingBottomDock(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .shadow(16.dp, RoundedCornerShape(22.dp), spotColor = Color(0x60000000))
+                .shadow(
+                    elevation = if (isLight) 12.dp else 16.dp,
+                    shape = RoundedCornerShape(22.dp),
+                    spotColor = if (isLight) Color(0x18000000) else Color(0x60000000)
+                )
                 .clip(RoundedCornerShape(22.dp))
                 .background(CardSurface)
                 .border(1.dp, CardBorder, RoundedCornerShape(22.dp))
@@ -85,17 +91,20 @@ fun FloatingBottomDock(
             val totalWidth = maxWidth
             val tabWidth = totalWidth / 5
 
-            // 1. Clean Subtle Graphite Sliding Capsule
+            val capsuleBg = if (isLight) PurplePrimary.copy(alpha = 0.12f) else Color(0xFF22252E)
+            val capsuleBorder = if (isLight) PurplePrimary.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.12f)
+
+            // 1. Clean Subtle Sliding Capsule
             Box(
                 modifier = Modifier
                     .offset(x = tabWidth * animatedTabIndex + 3.dp)
                     .width(tabWidth - 6.dp)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF22252E))
+                    .background(capsuleBg)
                     .border(
                         1.dp,
-                        Color.White.copy(alpha = 0.12f),
+                        capsuleBorder,
                         RoundedCornerShape(16.dp)
                     )
             )
@@ -164,8 +173,9 @@ private fun DockTabButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val activeColor = TextWhite
-    val inactiveColor = TextMuted
+    val isLight = AppThemeManager.currentTheme.isLight
+    val activeColor = if (isLight) PurplePrimary else PureWhite
+    val inactiveColor = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
 
     val iconScale by animateFloatAsState(
         targetValue = if (selected) 1.06f else 1.0f,

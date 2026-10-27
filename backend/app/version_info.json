@@ -1,6 +1,6 @@
 {
     "download_url": "/api/v1/app/download",
-    "release_notes": "Default Pure Studio Porcelain White theme + 8 light/dark luxury palettes, dynamic contrast adaptation, and real YouTube channel integration guide.",
-    "version_code": 18,
-    "version_name": "1.3.5"
+    "release_notes": "Fix Today's Thought text contrast on cinematic card & adapt bottom dock sliding pill to theme palette (v1.3.6)",
+    "version_code": 19,
+    "version_name": "1.3.6"
 }

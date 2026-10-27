@@ -441,7 +441,7 @@ private fun TodayThoughtHeroCard(
                     text = "Today's Thought",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextWhite
+                    color = Color.White
                 )
             }
 
@@ -451,7 +451,7 @@ private fun TodayThoughtHeroCard(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 28.sp,
-                color = TextWhite,
+                color = Color.White,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis
             )

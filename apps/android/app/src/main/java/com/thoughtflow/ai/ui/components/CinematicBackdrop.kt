@@ -83,8 +83,8 @@ fun CinematicBackdrop(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color(0x55090713),
-                            DeepBackground.copy(alpha = dimAlpha.coerceAtLeast(0.4f))
+                            Color(0x40090713),
+                            Color(0xDD090713)
                         )
                     )
                 )
