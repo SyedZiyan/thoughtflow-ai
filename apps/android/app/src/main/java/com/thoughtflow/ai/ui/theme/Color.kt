@@ -3,11 +3,13 @@ package com.thoughtflow.ai.ui.theme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.thoughtflow.ai.data.local.LocalCacheManager
 
 data class AppThemeConfig(
     val name: String,
+    val isLight: Boolean = false,
     val background: Color,
     val cardSurface: Color,
     val cardSurfaceElevated: Color,
@@ -16,13 +18,35 @@ data class AppThemeConfig(
     val dark: Color,
     val accent: Color,
     val surface: Color,
-    val pill: Color
+    val pill: Color,
+    val textPrimary: Color = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC),
+    val textSecondary: Color = if (isLight) Color(0xFF475569) else Color(0xFF94A3B8),
+    val textMuted: Color = if (isLight) Color(0xFF64748B) else Color(0xFF64748B)
 )
 
 object AppThemeManager {
     val THEMES = listOf(
+        // 0. Default Theme: Pure Studio Porcelain (Crisp Executive White Theme)
+        AppThemeConfig(
+            name = "Pure Studio Porcelain",
+            isLight = true,
+            background = Color(0xFFF8FAFC), // Pure subtle porcelain white
+            cardSurface = Color(0xFFFFFFFF), // Crisp pure white
+            cardSurfaceElevated = Color(0xFFF1F5F9), // Light elevated surface
+            cardBorder = Color(0xFFE2E8F0), // Subtle hairline border
+            primary = Color(0xFF2563EB), // Royal Studio Blue
+            dark = Color(0xFF1D4ED8),
+            accent = Color(0xFF3B82F6),
+            surface = Color(0xFFEFF6FF),
+            pill = Color(0xFFE2E8F0),
+            textPrimary = Color(0xFF0F172A),
+            textSecondary = Color(0xFF475569),
+            textMuted = Color(0xFF64748B)
+        ),
+        // 1. Obsidian Dark Studio
         AppThemeConfig(
             name = "Obsidian Dark Studio",
+            isLight = false,
             background = Color(0xFF090A0D),
             cardSurface = Color(0xFF13151A),
             cardSurfaceElevated = Color(0xFF1C1E24),
@@ -31,10 +55,15 @@ object AppThemeManager {
             dark = Color(0xFF1D4ED8),
             accent = Color(0xFF60A5FA),
             surface = Color(0xFF181C26),
-            pill = Color(0xFF22252E)
+            pill = Color(0xFF22252E),
+            textPrimary = Color(0xFFF8FAFC),
+            textSecondary = Color(0xFF94A3B8),
+            textMuted = Color(0xFF64748B)
         ),
+        // 2. Cyber Neon Cyan
         AppThemeConfig(
             name = "Cyber Neon Cyan",
+            isLight = false,
             background = Color(0xFF080C14),
             cardSurface = Color(0xFF0F172A),
             cardSurfaceElevated = Color(0xFF1E293B),
@@ -43,10 +72,15 @@ object AppThemeManager {
             dark = Color(0xFF0891B2),
             accent = Color(0xFF38BDF8),
             surface = Color(0xFF162032),
-            pill = Color(0xFF1E293B)
+            pill = Color(0xFF1E293B),
+            textPrimary = Color(0xFFF8FAFC),
+            textSecondary = Color(0xFF94A3B8),
+            textMuted = Color(0xFF64748B)
         ),
+        // 3. Emerald Zen
         AppThemeConfig(
             name = "Emerald Zen",
+            isLight = false,
             background = Color(0xFF080F0C),
             cardSurface = Color(0xFF0E1A14),
             cardSurfaceElevated = Color(0xFF16291F),
@@ -55,10 +89,15 @@ object AppThemeManager {
             dark = Color(0xFF059669),
             accent = Color(0xFF34D399),
             surface = Color(0xFF14241B),
-            pill = Color(0xFF1B2E24)
+            pill = Color(0xFF1B2E24),
+            textPrimary = Color(0xFFF8FAFC),
+            textSecondary = Color(0xFF94A3B8),
+            textMuted = Color(0xFF64748B)
         ),
+        // 4. Sunset Coral & Gold
         AppThemeConfig(
             name = "Sunset Coral & Gold",
+            isLight = false,
             background = Color(0xFF0F0A08),
             cardSurface = Color(0xFF1C130F),
             cardSurfaceElevated = Color(0xFF2B1C15),
@@ -67,10 +106,15 @@ object AppThemeManager {
             dark = Color(0xFFC2410C),
             accent = Color(0xFFFBBF24),
             surface = Color(0xFF241712),
-            pill = Color(0xFF2D1E18)
+            pill = Color(0xFF2D1E18),
+            textPrimary = Color(0xFFF8FAFC),
+            textSecondary = Color(0xFF94A3B8),
+            textMuted = Color(0xFF64748B)
         ),
+        // 5. Midnight Amethyst
         AppThemeConfig(
             name = "Midnight Amethyst",
+            isLight = false,
             background = Color(0xFF0C0A14),
             cardSurface = Color(0xFF151224),
             cardSurfaceElevated = Color(0xFF201B36),
@@ -79,7 +123,44 @@ object AppThemeManager {
             dark = Color(0xFF6D28D9),
             accent = Color(0xFFA78BFA),
             surface = Color(0xFF1C1730),
-            pill = Color(0xFF272140)
+            pill = Color(0xFF272140),
+            textPrimary = Color(0xFFF8FAFC),
+            textSecondary = Color(0xFF94A3B8),
+            textMuted = Color(0xFF64748B)
+        ),
+        // 6. Rose Gold Champagne (Warm Luxury Light Theme)
+        AppThemeConfig(
+            name = "Rose Gold Champagne",
+            isLight = true,
+            background = Color(0xFFFAF7F5),
+            cardSurface = Color(0xFFFFFFFF),
+            cardSurfaceElevated = Color(0xFFF5EBE6),
+            cardBorder = Color(0xFFE8DAD4),
+            primary = Color(0xFFE11D48), // Rose crimson
+            dark = Color(0xFFBE123C),
+            accent = Color(0xFFF43F5E),
+            surface = Color(0xFFFFF1F2),
+            pill = Color(0xFFF5EBE6),
+            textPrimary = Color(0xFF1C1315),
+            textSecondary = Color(0xFF5C474B),
+            textMuted = Color(0xFF886E73)
+        ),
+        // 7. Nordic Titanium Slate (Minimalist Cool Gray Light Theme)
+        AppThemeConfig(
+            name = "Nordic Titanium Slate",
+            isLight = true,
+            background = Color(0xFFF3F4F6),
+            cardSurface = Color(0xFFFFFFFF),
+            cardSurfaceElevated = Color(0xFFE5E7EB),
+            cardBorder = Color(0xFFD1D5DB),
+            primary = Color(0xFF0D9488), // Nordic Teal
+            dark = Color(0xFF0F766E),
+            accent = Color(0xFF14B8A6),
+            surface = Color(0xFFCCFBF1),
+            pill = Color(0xFFE5E7EB),
+            textPrimary = Color(0xFF111827),
+            textSecondary = Color(0xFF4B5563),
+            textMuted = Color(0xFF6B7280)
         )
     )
 
@@ -105,9 +186,7 @@ object AppThemeManager {
             it.name.equals(saved, ignoreCase = true) ||
             saved.contains(it.name.substringBefore(" "), ignoreCase = true)
         }
-        if (idx != -1) {
-            currentThemeIndex = idx
-        }
+        currentThemeIndex = if (idx != -1) idx else 0
     }
 }
 
@@ -124,6 +203,24 @@ inline val PurpleDeep: Color get() = AppThemeManager.currentTheme.dark
 inline val PurpleAccent: Color get() = AppThemeManager.currentTheme.accent
 val PurpleGlow = Color(0x203B82F6)
 inline val PurpleSurface: Color get() = AppThemeManager.currentTheme.surface
+
+// Dynamic Specular Glass Border
+inline val SpecularBorder: Brush
+    get() = if (AppThemeManager.currentTheme.isLight) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.Black.copy(alpha = 0.08f),
+                Color.Black.copy(alpha = 0.02f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.18f),
+                Color.White.copy(alpha = 0.03f)
+            )
+        )
+    }
 
 // Status & Accent Colors
 val StatusGreen = Color(0xFF10B981)
@@ -154,11 +251,16 @@ val GradientGold = listOf(Color(0xFFD97706), Color(0xFFB45309))
 val GradientRose = listOf(Color(0xFFE11D48), Color(0xFFBE123C))
 val GradientIndigo = listOf(Color(0xFF4F46E5), Color(0xFF4338CA))
 
-// Neutral Surfaces & Typography
-val TextWhite = Color(0xFFF8FAFC)
-val TextSecondary = Color(0xFF94A3B8)
-val TextMuted = Color(0xFF64748B)
+// Dynamic Neutral Surfaces & Typography
+inline val TextWhite: Color get() = AppThemeManager.currentTheme.textPrimary
+inline val TextPrimary: Color get() = AppThemeManager.currentTheme.textPrimary
+inline val TextSecondary: Color get() = AppThemeManager.currentTheme.textSecondary
+inline val TextMuted: Color get() = AppThemeManager.currentTheme.textMuted
 val DividerDark = Color(0xFF22242B)
+
+// Fixed contrast values for components with permanent dark/light fills
+val PureWhite = Color(0xFFFFFFFF)
+val PureBlack = Color(0xFF000000)
 
 // Backward compatibility aliases
 val MintGreenPrimary = StatusGreen
@@ -171,7 +273,6 @@ inline val BackgroundCanvas: Color get() = DeepBackground
 inline val SurfaceCard: Color get() = CardSurface
 inline val SurfaceCardAlt: Color get() = CardSurfaceElevated
 inline val BorderSubtle: Color get() = CardBorder
-val TextPrimary = TextWhite
 val StatusSuccess = StatusGreen
 val StatusWarning = StatusAmber
 val StatusError = StatusRed

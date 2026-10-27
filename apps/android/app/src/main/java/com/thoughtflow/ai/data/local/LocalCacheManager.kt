@@ -37,7 +37,7 @@ object LocalCacheManager {
     }
 
     fun getSavedTheme(): String {
-        return prefs?.getString("saved_app_theme", "Obsidian Dark Studio") ?: "Obsidian Dark Studio"
+        return prefs?.getString("saved_app_theme", "Pure Studio Porcelain") ?: "Pure Studio Porcelain"
     }
 
     fun saveAppTheme(theme: String) {

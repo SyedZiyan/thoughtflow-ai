@@ -12,8 +12,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
@@ -179,7 +181,7 @@ fun SettingsScreen(
                                     text = userInitial,
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextWhite
+                                    color = Color.White
                                 )
                             }
 
@@ -322,7 +324,7 @@ fun SettingsScreen(
                         SettingsMenuItem(
                             icon = Icons.Outlined.Info,
                             title = "About ThoughtFlow AI",
-                            trailingText = "v1.3.4 Elite",
+                            trailingText = "v1.3.5 Elite",
                             onClick = { showAboutDialog = true }
                         )
                     }
@@ -789,7 +791,10 @@ fun SettingsScreen(
                 },
                 text = {
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 420.dp)
+                            .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         AppThemeManager.THEMES.forEach { themeConfig ->
@@ -829,16 +834,27 @@ fun SettingsScreen(
                                                 .size(16.dp)
                                                 .clip(CircleShape)
                                                 .background(themeConfig.cardSurface)
-                                                .border(0.5.dp, Color.White.copy(alpha = 0.25f), CircleShape)
+                                                .border(
+                                                    0.5.dp,
+                                                    if (themeConfig.isLight) Color.Black.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.25f),
+                                                    CircleShape
+                                                )
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        themeConfig.name,
-                                        color = TextWhite,
-                                        fontSize = 13.5.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                    )
+                                    Column {
+                                        Text(
+                                            themeConfig.name,
+                                            color = TextWhite,
+                                            fontSize = 13.5.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                        Text(
+                                            if (themeConfig.isLight) "Light Studio Theme" else "Dark Luxury Studio",
+                                            color = TextSecondary,
+                                            fontSize = 10.5.sp
+                                        )
+                                    }
                                 }
                                 if (isSelected) {
                                     Icon(

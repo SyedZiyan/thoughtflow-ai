@@ -123,7 +123,7 @@ fun DashboardScreen(
                         text = userInitial,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = Color.White
                     )
                 }
             }
@@ -320,7 +320,7 @@ fun DashboardScreen(
                                         text = "Generate Now",
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextWhite
+                                        color = Color.White
                                     )
                                 }
 
