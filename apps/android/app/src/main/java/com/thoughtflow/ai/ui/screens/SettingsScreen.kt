@@ -322,7 +322,7 @@ fun SettingsScreen(
                         SettingsMenuItem(
                             icon = Icons.Outlined.Info,
                             title = "About ThoughtFlow AI",
-                            trailingText = "v1.3.2 Elite",
+                            trailingText = "v1.3.4 Elite",
                             onClick = { showAboutDialog = true }
                         )
                     }

@@ -237,8 +237,13 @@ fun DashboardScreen(
                             )
                         }
 
-                        // 4. Three Tactile Specular Status Cards
+                        // 4. Three Tactile Specular Status Cards (Live Data from Real DB & YouTube API)
                         item {
+                            val genDone = state.dashboard.todayGenerationStatus == "completed"
+                            val videosCount = state.dashboard.totalVideos
+                            val isYtConnected = state.dashboard.youtubeConnected
+                            val ytPublished = state.dashboard.todayPublishingStatus == "published"
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -246,9 +251,9 @@ fun DashboardScreen(
                                 StatusItemCard(
                                     icon = Icons.Outlined.Edit,
                                     title = "Generated\nToday",
-                                    statusText = "✓ Completed",
-                                    statusColor = StatusGreen,
-                                    isPulsing = false,
+                                    statusText = if (genDone) "✓ Completed" else "Pending",
+                                    statusColor = if (genDone) StatusGreen else TextMuted,
+                                    isPulsing = !genDone,
                                     modifier = Modifier.weight(1f),
                                     onClick = { showFormatDialog = true }
                                 )
@@ -256,8 +261,8 @@ fun DashboardScreen(
                                 StatusItemCard(
                                     icon = Icons.Outlined.SmartDisplay,
                                     title = "Rendered\nVideo",
-                                    statusText = "✓ Completed",
-                                    statusColor = StatusGreen,
+                                    statusText = if (videosCount > 0) "✓ $videosCount Ready" else "None Yet",
+                                    statusColor = if (videosCount > 0) StatusGreen else TextMuted,
                                     isPulsing = false,
                                     modifier = Modifier.weight(1f),
                                     onClick = { onNavigateToStudio(null) }
@@ -266,19 +271,27 @@ fun DashboardScreen(
                                 StatusItemCard(
                                     icon = Icons.Outlined.Subscriptions,
                                     title = "Published\non YouTube",
-                                    statusText = "⏰ Scheduled",
-                                    statusColor = StatusAmber,
-                                    isPulsing = true,
+                                    statusText = when {
+                                        !isYtConnected -> "Not Linked"
+                                        ytPublished -> "✓ Published"
+                                        else -> "Ready to Post"
+                                    },
+                                    statusColor = when {
+                                        !isYtConnected -> StatusAmber
+                                        ytPublished -> StatusGreen
+                                        else -> PurpleAccent
+                                    },
+                                    isPulsing = isYtConnected && !ytPublished,
                                     modifier = Modifier.weight(1f),
                                     onClick = onNavigateToCalendar
                                 )
                             }
                         }
 
-                        // 5. Specular Next Video Schedule Banner
+                        // 5. Specular Next Video Schedule Banner (Real Next Execution Time)
                         item {
                             NextVideoScheduleBanner(
-                                scheduleText = "Tomorrow, 8:00 AM",
+                                scheduleText = state.dashboard.nextScheduledExecution ?: "Automation Off (Set Schedule)",
                                 onViewScheduleClick = onNavigateToCalendar
                             )
                         }

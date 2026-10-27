@@ -173,6 +173,9 @@ class YouTubeStatusResponse(BaseModel):
     connected_at: Optional[datetime] = None
     upload_enabled: bool
     dry_run_mode: bool
+    oauth_configured: bool = False
+    oauth_authorized: bool = False
+    remaining_setup: Optional[str] = None
 
 class YouTubeUploadRequest(BaseModel):
     video_id: str

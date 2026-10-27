@@ -111,7 +111,10 @@ data class YouTubeStatusResponse(
     @SerializedName("video_count") val videoCount: Int? = null,
     @SerializedName("view_count") val viewCount: Int? = null,
     @SerializedName("upload_enabled") val uploadEnabled: Boolean = false,
-    @SerializedName("dry_run_mode") val dryRunMode: Boolean = true
+    @SerializedName("dry_run_mode") val dryRunMode: Boolean = true,
+    @SerializedName("oauth_configured") val oauthConfigured: Boolean = false,
+    @SerializedName("oauth_authorized") val oauthAuthorized: Boolean = false,
+    @SerializedName("remaining_setup") val remainingSetup: String? = null
 )
 
 data class YouTubeConnectResponse(

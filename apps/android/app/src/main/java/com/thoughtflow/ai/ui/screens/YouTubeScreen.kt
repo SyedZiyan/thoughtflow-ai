@@ -570,12 +570,18 @@ fun YouTubeScreen(
                                                 ).collectLatest { res ->
                                                     isPublishing = false
                                                     res.fold(
-                                                        onSuccess = {
-                                                            Toast.makeText(context, "Video queued for YouTube upload!", Toast.LENGTH_LONG).show()
+                                                        onSuccess = { map ->
+                                                            val isDryRun = map["dry_run"] as? Boolean ?: false
+                                                            val msg = map["message"] as? String ?: "Processed"
+                                                            if (isDryRun) {
+                                                                Toast.makeText(context, "Dry Run Mode: $msg", Toast.LENGTH_LONG).show()
+                                                            } else {
+                                                                Toast.makeText(context, "Uploaded to YouTube successfully!", Toast.LENGTH_LONG).show()
+                                                            }
                                                             refreshStatus()
                                                         },
                                                         onFailure = { err ->
-                                                            Toast.makeText(context, "Upload: ${err.localizedMessage ?: "Done"}", Toast.LENGTH_SHORT).show()
+                                                            Toast.makeText(context, "Upload failed: ${err.localizedMessage ?: "Unknown error"}", Toast.LENGTH_LONG).show()
                                                         }
                                                     )
                                                 }

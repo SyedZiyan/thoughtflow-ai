@@ -37,12 +37,16 @@ coverage.xml
 
 # Environment & Secrets
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+*.env
+*.env.*
 *.pem
 *.key
+*.token
+*.secret
+*token*.json
+*credentials*.json
+*secret*.json
 client_secret*.json
 oauth_credentials.json
 

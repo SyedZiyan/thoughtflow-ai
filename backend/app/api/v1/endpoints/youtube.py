@@ -90,56 +90,14 @@ def connect_youtube(
 
 @router.post("/simulate-connect", response_model=YouTubeStatusResponse)
 def simulate_youtube_connection(
-    channel_name: Optional[str] = Query(default="ThoughtFlow Motivation Official"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Connects or simulates a connected YouTube channel for testing and instant preview"""
-    integration = (
-        db.query(Integration)
-        .filter(Integration.user_id == current_user.id, Integration.provider == "youtube")
-        .first()
-    )
-    if not integration:
-        integration = Integration(
-            user_id=current_user.id,
-            provider="youtube"
-        )
-        db.add(integration)
-
-    integration.encrypted_credentials = "demo_connected_credentials"
-    integration.connection_status = "connected"
-    integration.channel_id = "UC_THOUGHTFLOW_OFFICIAL"
-    integration.channel_title = channel_name or "ThoughtFlow Motivation Official"
-    integration.channel_metadata = {
-        "subscriber_count": 1240,
-        "video_count": 18,
-        "view_count": 48200,
-        "channel_thumbnail": "https://picsum.photos/seed/thoughtflow_yt/120/120"
-    }
-    integration.connected_at = datetime.now(timezone.utc)
-
-    log = ActivityLog(
-        user_id=current_user.id,
-        event_type="youtube_connected",
-        message=f"Connected YouTube channel: {integration.channel_title}",
-        log_metadata={"channel_title": integration.channel_title}
-    )
-    db.add(log)
-    db.commit()
-
-    return YouTubeStatusResponse(
-        connected=True,
-        channel_id=integration.channel_id,
-        channel_title=integration.channel_title,
-        channel_thumbnail="https://picsum.photos/seed/thoughtflow_yt/120/120",
-        subscriber_count=1240,
-        video_count=18,
-        view_count=48200,
-        connected_at=integration.connected_at,
-        upload_enabled=True,
-        dry_run_mode=False
-    )
+    """
+    Simulated connections are disabled per non-negotiable engineering rules:
+    All status responses strictly reflect authentic credentials and database state.
+    """
+    return get_youtube_status(current_user=current_user, db=db)
 
 
 @router.get("/callback")
@@ -233,17 +191,37 @@ def get_youtube_status(
     db: Session = Depends(get_db)
 ):
     """Returns live connection status, channel metadata, and quota information"""
+    oauth_configured = bool(settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET)
+
     integration = (
         db.query(Integration)
         .filter(Integration.user_id == current_user.id, Integration.provider == "youtube")
         .first()
     )
 
-    if not integration or integration.connection_status != "connected":
+    has_real_credentials = bool(
+        integration
+        and integration.connection_status == "connected"
+        and integration.encrypted_credentials
+        and integration.encrypted_credentials != "demo_connected_credentials"
+    )
+
+    remaining_setup = None
+    if not oauth_configured:
+        remaining_setup = "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in backend/.env"
+    elif not has_real_credentials:
+        remaining_setup = "Authorize channel with Google OAuth"
+
+    if not integration or not has_real_credentials:
+        channel_name = integration.channel_title if integration else None
         return YouTubeStatusResponse(
             connected=False,
-            upload_enabled=settings.YOUTUBE_UPLOAD_ENABLED,
-            dry_run_mode=not settings.YOUTUBE_UPLOAD_ENABLED
+            channel_title=channel_name,
+            upload_enabled=settings.YOUTUBE_UPLOAD_ENABLED and has_real_credentials,
+            dry_run_mode=not (settings.YOUTUBE_UPLOAD_ENABLED and has_real_credentials),
+            oauth_configured=oauth_configured,
+            oauth_authorized=False,
+            remaining_setup=remaining_setup
         )
 
     meta = integration.channel_metadata or {}
@@ -257,7 +235,10 @@ def get_youtube_status(
         view_count=meta.get("view_count"),
         connected_at=integration.connected_at,
         upload_enabled=settings.YOUTUBE_UPLOAD_ENABLED,
-        dry_run_mode=not settings.YOUTUBE_UPLOAD_ENABLED
+        dry_run_mode=not settings.YOUTUBE_UPLOAD_ENABLED,
+        oauth_configured=True,
+        oauth_authorized=True,
+        remaining_setup=None
     )
 
 @router.post("/upload/{video_id}")
@@ -310,7 +291,9 @@ def upload_video_to_youtube(
             video.youtube_url = res.get("youtube_url")
             video.published_at = datetime.now(timezone.utc)
         else:
-            video.youtube_url = res.get("youtube_url")
+            video.upload_status = "not_uploaded"
+            video.youtube_video_id = None
+            video.youtube_url = None
 
         # Log activity
         log = ActivityLog(

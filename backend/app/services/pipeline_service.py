@@ -196,7 +196,8 @@ class PipelineService:
 
                 if upload_res.get("dry_run"):
                     video.upload_status = "not_uploaded"
-                    video.youtube_url = upload_res.get("youtube_url")
+                    video.youtube_url = None
+                    video.youtube_video_id = None
                 else:
                     video.upload_status = "published"
                     video.youtube_video_id = upload_res.get("youtube_video_id")
