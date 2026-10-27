@@ -21,7 +21,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Ensure storage directories exist
-RUN mkdir -p storage/videos storage/temp
+RUN mkdir -p /app/storage/videos /app/storage/temp
+ENV STORAGE_DIR=/app/storage
+ENV VIDEO_STORAGE_DIR=/app/storage/videos
+ENV TEMP_STORAGE_DIR=/app/storage/temp
 
 EXPOSE 8000
 
