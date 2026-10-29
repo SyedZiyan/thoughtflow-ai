@@ -14,7 +14,6 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.db.session import engine, Base, SessionLocal, get_db
 from app.api.v1.api import api_router
-from app.api.deps import get_or_create_default_user
 
 logger = logging.getLogger("thoughtflow.main")
 
@@ -24,13 +23,7 @@ async def lifespan(app: FastAPI):
     try:
         # Create database tables automatically
         Base.metadata.create_all(bind=engine)
-        # Seed default creator user on application startup
-        db_init = SessionLocal()
-        try:
-            get_or_create_default_user(db_init)
-        finally:
-            db_init.close()
-        logger.info("Database initialized and default user verified.")
+        logger.info("Database schema verified.")
     except Exception as e:
         logger.error(f"Startup database initialization error: {e}")
         if settings.ENVIRONMENT == "production":

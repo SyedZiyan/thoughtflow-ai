@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.api.deps import get_current_user, get_or_create_default_user
+from app.api.deps import get_current_user
 from app.models.models import User, Integration, Video, Thought, ActivityLog
 from app.schemas.schemas import YouTubeStatusResponse, YouTubeUploadRequest
 from app.services.youtube_service import youtube_service
@@ -115,7 +115,10 @@ def youtube_callback(
         target_user = db.query(User).filter(User.id == user_id).first()
 
     if not target_user:
-        target_user = get_or_create_default_user(db)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid OAuth state parameter or user session expired. Please re-initiate YouTube connection from ThoughtFlow AI."
+        )
 
     try:
         token_info = youtube_service.exchange_code_for_tokens(code)

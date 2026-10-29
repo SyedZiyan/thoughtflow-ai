@@ -163,7 +163,7 @@ def test_api_video_styles_endpoint():
     assert "text_placements" in data
     assert "tts_voices" in data
 
-def test_api_preview_frame_endpoint():
+def test_api_preview_frame_endpoint(auth_client):
     payload = {
         "thought_text": "Discipline is choosing between what you want now and what you want most.",
         "theme": "discipline",
@@ -171,7 +171,7 @@ def test_api_preview_frame_endpoint():
         "typography": "clean_mono",
         "text_placement": "center"
     }
-    resp = client.post("/api/v1/videos/preview-frame", json=payload)
+    resp = auth_client.post("/api/v1/videos/preview-frame", json=payload)
     assert resp.status_code == 200
     assert resp.headers["content-type"] == "image/png"
     assert len(resp.content) > 5000

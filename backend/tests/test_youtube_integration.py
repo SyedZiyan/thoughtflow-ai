@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.db.session import SessionLocal
 from app.models.models import User, Thought, Video, Integration, ActivityLog
-from app.api.deps import get_or_create_default_user
+from conftest import get_or_create_test_user, get_test_auth_headers
 from app.services.youtube_service import youtube_service
 from app.core.security import encrypt_token, decrypt_token
 from app.core.config import settings
@@ -111,16 +111,33 @@ def test_upload_corrupt_file_too_small(tmp_path):
 # ==========================================
 
 def test_api_youtube_status_disconnected():
-    resp = client.get("/api/v1/youtube/status")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "upload_enabled" in data
-    assert "dry_run_mode" in data
+    # 1. Unauthenticated request must return 401
+    unauth_resp = client.get("/api/v1/youtube/status")
+    assert unauth_resp.status_code == 401
+
+    # 2. Authenticated user without connected channel returns 200 with connected=False
+    db = SessionLocal()
+    try:
+        user = get_or_create_test_user(db, email="disconnected_user@thoughtflow.ai")
+        # Ensure no integration exists
+        db.query(Integration).filter(Integration.user_id == user.id).delete()
+        db.commit()
+
+        headers = get_test_auth_headers(user)
+        resp = client.get("/api/v1/youtube/status", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["connected"] is False
+        assert "upload_enabled" in data
+        assert "dry_run_mode" in data
+    finally:
+        db.close()
 
 def test_api_youtube_status_connected():
     db = SessionLocal()
     try:
-        user = get_or_create_default_user(db)
+        user = get_or_create_test_user(db)
+        headers = get_test_auth_headers(user)
         integration = (
             db.query(Integration)
             .filter(Integration.user_id == user.id, Integration.provider == "youtube")
@@ -142,7 +159,7 @@ def test_api_youtube_status_connected():
         integration.connected_at = datetime.now(timezone.utc)
         db.commit()
 
-        resp = client.get("/api/v1/youtube/status")
+        resp = client.get("/api/v1/youtube/status", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["connected"] is True
@@ -154,21 +171,34 @@ def test_api_youtube_status_connected():
         db.close()
 
 def test_api_youtube_disconnect():
-    resp = client.post("/api/v1/youtube/disconnect")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["status"] == "success"
+    db = SessionLocal()
+    try:
+        user = get_or_create_test_user(db)
+        headers = get_test_auth_headers(user)
+        resp = client.post("/api/v1/youtube/disconnect", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "success"
+    finally:
+        db.close()
 
 def test_api_youtube_sync_metrics_no_channel():
-    resp = client.post("/api/v1/youtube/sync-metrics")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["status"] in ["skipped", "success"]
+    db = SessionLocal()
+    try:
+        user = get_or_create_test_user(db)
+        headers = get_test_auth_headers(user)
+        resp = client.post("/api/v1/youtube/sync-metrics", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] in ["skipped", "success"]
+    finally:
+        db.close()
 
 def test_upload_ownership_authorization():
     db = SessionLocal()
     try:
-        user = get_or_create_default_user(db)
+        user = get_or_create_test_user(db)
+        headers = get_test_auth_headers(user)
 
         # Create a thought & video belonging to another user
         other_user = User(
@@ -204,7 +234,7 @@ def test_upload_ownership_authorization():
         db.refresh(other_video)
 
         # When current user tries to upload other user's video -> must reject
-        resp = client.post(f"/api/v1/youtube/upload/{other_video.id}")
+        resp = client.post(f"/api/v1/youtube/upload/{other_video.id}", headers=headers)
         assert resp.status_code == 404
         assert "permission" in resp.json()["detail"].lower()
     finally:

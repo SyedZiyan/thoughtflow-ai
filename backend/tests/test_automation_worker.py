@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.db.session import SessionLocal
 from app.models.models import User, Thought, Video, Job, UserSettings, ActivityLog
-from app.api.deps import get_or_create_default_user
+from conftest import get_or_create_test_user, get_test_auth_headers
 from app.services.pipeline_service import PipelineService, PipelineExecutionError
 from worker.scheduler import is_time_to_generate, is_time_to_publish, write_heartbeat, HEARTBEAT_FILE
 from app.api.v1.endpoints.automation import get_worker_heartbeat
@@ -24,7 +24,7 @@ async def test_job_idempotency():
     original_limit = 5
     job_to_clean = None
     try:
-        user = get_or_create_default_user(db)
+        user = get_or_create_test_user(db)
         original_limit = user.settings.daily_limit
         user.settings.daily_limit = 50
         db.commit()
@@ -53,7 +53,7 @@ async def test_job_idempotency():
         )
         assert "already completed" in res2["message"]
     finally:
-        user = get_or_create_default_user(db)
+        user = get_or_create_test_user(db)
         user.settings.daily_limit = original_limit
         if job_to_clean:
             db.query(Job).filter(Job.job_key == job_to_clean).delete()
@@ -71,7 +71,7 @@ async def test_daily_budget_limit_enforcement():
     db = SessionLocal()
     t = None
     try:
-        user = get_or_create_default_user(db)
+        user = get_or_create_test_user(db)
         user.settings.daily_limit = 1
         db.commit()
 
@@ -146,7 +146,7 @@ def test_stuck_job_reclamation():
     db = SessionLocal()
     stuck_job = None
     try:
-        user = get_or_create_default_user(db)
+        user = get_or_create_test_user(db)
         stuck_job_key = f"stuck_job_crash_test_{int(datetime.now(timezone.utc).timestamp())}"
 
         # Create a simulated crashed job in 'rendering' status started 45 minutes ago
@@ -197,20 +197,38 @@ def test_worker_heartbeat_generation():
 # ==========================================
 
 def test_api_automation_status():
-    resp = client.get("/api/v1/automation/status")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "automation_enabled" in data
-    assert "generation_time" in data
-    assert "timezone" in data
-    assert "worker" in data
+    db = SessionLocal()
+    try:
+        user = get_or_create_test_user(db)
+        headers = get_test_auth_headers(user)
+        resp = client.get("/api/v1/automation/status", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "automation_enabled" in data
+        assert "generation_time" in data
+        assert "timezone" in data
+        assert "worker" in data
+    finally:
+        db.close()
 
 def test_api_list_jobs():
-    resp = client.get("/api/v1/automation/jobs")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert isinstance(data, list)
+    db = SessionLocal()
+    try:
+        user = get_or_create_test_user(db)
+        headers = get_test_auth_headers(user)
+        resp = client.get("/api/v1/automation/jobs", headers=headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+    finally:
+        db.close()
 
 def test_api_retry_non_existent_job():
-    resp = client.post("/api/v1/automation/jobs/non_existent_job_id_123/retry")
-    assert resp.status_code == 404
+    db = SessionLocal()
+    try:
+        user = get_or_create_test_user(db)
+        headers = get_test_auth_headers(user)
+        resp = client.post("/api/v1/automation/jobs/non_existent_job_id_123/retry", headers=headers)
+        assert resp.status_code == 404
+    finally:
+        db.close()

@@ -61,6 +61,7 @@ storage/temp/*
 !storage/videos/.gitkeep
 !storage/temp/.gitkeep
 storage/worker_heartbeat.json
+backend/storage/
 *.db
 *.sqlite
 *.sqlite3
