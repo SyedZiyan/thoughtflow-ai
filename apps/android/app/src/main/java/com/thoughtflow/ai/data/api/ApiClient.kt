@@ -41,6 +41,12 @@ object ApiClient {
         instance = null
     }
 
+    fun resetToDefault(): String {
+        val defaultHost = if (isEmulator) "http://10.0.2.2:8000" else "http://192.168.0.101:8000"
+        setHost(defaultHost)
+        return defaultHost
+    }
+
     fun reset() {
         instance = null
     }

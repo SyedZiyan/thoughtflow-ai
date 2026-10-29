@@ -77,6 +77,8 @@ fun SettingsScreen(
     var notificationsEnabled by remember { mutableStateOf(true) }
 
     var serverHost by remember { mutableStateOf(ApiClient.getHost()) }
+    var tempServerHost by remember { mutableStateOf(ApiClient.getHost()) }
+    var isHostLocked by remember { mutableStateOf(true) }
     var isCheckingUpdates by remember { mutableStateOf(false) }
     var ytStatus by remember { mutableStateOf<YouTubeStatusResponse?>(null) }
 
@@ -324,7 +326,7 @@ fun SettingsScreen(
                         SettingsMenuItem(
                             icon = Icons.Outlined.Info,
                             title = "About ThoughtFlow AI",
-                            trailingText = "v1.3.6 Elite",
+                            trailingText = "v1.3.7 Elite",
                             onClick = { showAboutDialog = true }
                         )
                     }
@@ -368,34 +370,202 @@ fun SettingsScreen(
                                 }
 
                                 Text(
-                                    text = "v1.0.9",
+                                    text = "v${updateState.installedVersionName}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = PurpleAccent
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
 
-                            OutlinedTextField(
-                                value = serverHost,
-                                onValueChange = {
-                                    serverHost = it
-                                    ApiClient.setHost(it)
-                                },
-                                label = { Text("Backend Host / Cloud URL", fontSize = 11.sp, color = TextSecondary) },
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = CardSurface,
-                                    unfocusedContainerColor = CardSurface,
-                                    focusedTextColor = TextWhite,
-                                    unfocusedTextColor = TextWhite,
-                                    focusedBorderColor = PurplePrimary,
-                                    unfocusedBorderColor = CardBorder
-                                ),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            if (isHostLocked) {
+                                // LOCKED VIEW: Protected against accidental edits/typos
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(CardSurface)
+                                        .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
+                                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFF10B981))
+                                            )
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column {
+                                                Text(
+                                                    text = "Backend Server (Locked)",
+                                                    fontSize = 11.sp,
+                                                    color = TextSecondary,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                                Text(
+                                                    text = serverHost,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = TextWhite,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(PurplePrimary.copy(alpha = 0.15f))
+                                                    .border(1.dp, PurpleAccent.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                                    .clickable {
+                                                        tempServerHost = serverHost
+                                                        isHostLocked = false
+                                                    }
+                                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Lock,
+                                                        contentDescription = "Locked",
+                                                        tint = PurpleAccent,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "Unlock",
+                                                        fontSize = 11.sp,
+                                                        color = PurpleAccent,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                // UNLOCKED VIEW: Explicit edit mode with Save / Cancel / Reset buttons
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(CardSurface)
+                                        .border(1.dp, PurplePrimary, RoundedCornerShape(14.dp))
+                                        .padding(14.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Edit Server Address",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PurpleAccent
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.LockOpen,
+                                            contentDescription = "Unlocked",
+                                            tint = PurpleAccent,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    OutlinedTextField(
+                                        value = tempServerHost,
+                                        onValueChange = { tempServerHost = it },
+                                        label = { Text("URL (e.g. http://192.168.0.101:8000)", fontSize = 11.sp, color = TextSecondary) },
+                                        singleLine = true,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = CardSurfaceElevated,
+                                            unfocusedContainerColor = CardSurfaceElevated,
+                                            focusedTextColor = TextWhite,
+                                            unfocusedTextColor = TextWhite,
+                                            focusedBorderColor = PurplePrimary,
+                                            unfocusedBorderColor = CardBorder
+                                        ),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(38.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(CardSurfaceElevated)
+                                                .border(1.dp, CardBorder, RoundedCornerShape(10.dp))
+                                                .clickable {
+                                                    tempServerHost = ApiClient.resetToDefault()
+                                                    serverHost = tempServerHost
+                                                    isHostLocked = true
+                                                    Toast.makeText(context, "Reset to default server!", Toast.LENGTH_SHORT).show()
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("Reset Default", fontSize = 11.sp, color = TextSecondary)
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(0.8f)
+                                                .height(38.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(CardSurfaceElevated)
+                                                .border(1.dp, CardBorder, RoundedCornerShape(10.dp))
+                                                .clickable {
+                                                    tempServerHost = serverHost
+                                                    isHostLocked = true
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("Cancel", fontSize = 11.sp, color = TextSecondary)
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1.2f)
+                                                .height(38.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(Brush.horizontalGradient(listOf(PurplePrimary, PurpleDark)))
+                                                .clickable {
+                                                    val clean = tempServerHost.trim()
+                                                    if (clean.startsWith("http://") || clean.startsWith("https://")) {
+                                                        serverHost = clean
+                                                        ApiClient.setHost(clean)
+                                                        isHostLocked = true
+                                                        Toast.makeText(context, "Server updated & locked!", Toast.LENGTH_SHORT).show()
+                                                    } else {
+                                                        Toast.makeText(context, "URL must start with http:// or https://", Toast.LENGTH_LONG).show()
+                                                    }
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("Save & Lock", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextWhite)
+                                        }
+                                    }
+                                }
+                            }
 
                             Spacer(modifier = Modifier.height(12.dp))
 
@@ -707,7 +877,7 @@ fun SettingsScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                         Text("ThoughtFlow AI Elite", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text("Version 1.1.0 (Build 11)", color = PurpleAccent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Version 1.3.7 Elite (Build 20)", color = PurpleAccent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 },
                 text = {
