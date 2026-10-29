@@ -232,3 +232,52 @@ def test_api_retry_non_existent_job():
         assert resp.status_code == 404
     finally:
         db.close()
+
+
+def test_job_endpoints_ownership_enforcement():
+    db = SessionLocal()
+    job = None
+    try:
+        user_a = get_or_create_test_user(db, email="owner_a@thoughtflow.ai")
+        user_b = get_or_create_test_user(db, email="owner_b@thoughtflow.ai")
+
+        headers_a = get_test_auth_headers(user_a)
+        headers_b = get_test_auth_headers(user_b)
+
+        # Create job belonging strictly to user A
+        job = Job(
+            job_key=f"ownership_test_job_{int(datetime.now(timezone.utc).timestamp())}",
+            job_type="daily_pipeline",
+            user_id=user_a.id,
+            status="failed",
+            error_message="Test failure"
+        )
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+
+        # 1. User B requesting user A's job by ID must return 404
+        get_b = client.get(f"/api/v1/automation/jobs/{job.id}", headers=headers_b)
+        assert get_b.status_code == 404
+        assert "not found" in get_b.json()["detail"].lower()
+
+        # 2. User B attempting to retry user A's job must return 404
+        retry_b = client.post(f"/api/v1/automation/jobs/{job.id}/retry", headers=headers_b)
+        assert retry_b.status_code == 404
+        assert "not found" in retry_b.json()["detail"].lower()
+
+        # 3. User B listing jobs must NOT include user A's job
+        list_b = client.get("/api/v1/automation/jobs", headers=headers_b)
+        assert list_b.status_code == 200
+        b_job_ids = [j["id"] for j in list_b.json()]
+        assert job.id not in b_job_ids
+
+        # 4. User A (legitimate owner) can view and retry
+        get_a = client.get(f"/api/v1/automation/jobs/{job.id}", headers=headers_a)
+        assert get_a.status_code == 200
+        assert get_a.json()["id"] == job.id
+    finally:
+        if job:
+            db.delete(job)
+            db.commit()
+        db.close()

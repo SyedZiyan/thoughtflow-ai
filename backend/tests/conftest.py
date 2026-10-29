@@ -64,7 +64,19 @@ def get_test_auth_headers(user: User) -> dict:
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_tables():
+    from sqlalchemy import text
     Base.metadata.create_all(bind=engine)
+    with engine.connect() as conn:
+        for sql in [
+            "ALTER TABLE jobs ADD COLUMN user_id VARCHAR(36)",
+            "ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT 1",
+            "ALTER TABLE users ADD COLUMN verification_token VARCHAR(255)"
+        ]:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass
     yield
 
 

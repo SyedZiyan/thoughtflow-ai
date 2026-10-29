@@ -23,7 +23,19 @@ async def lifespan(app: FastAPI):
     try:
         # Create database tables automatically
         Base.metadata.create_all(bind=engine)
-        logger.info("Database schema verified.")
+        # Perform idempotent schema alignment for newly added columns
+        with engine.connect() as conn:
+            for sql in [
+                "ALTER TABLE jobs ADD COLUMN user_id VARCHAR(36)",
+                "ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT 1",
+                "ALTER TABLE users ADD COLUMN verification_token VARCHAR(255)"
+            ]:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                except Exception:
+                    pass
+        logger.info("Database schema verified and aligned.")
     except Exception as e:
         logger.error(f"Startup database initialization error: {e}")
         if settings.ENVIRONMENT == "production":

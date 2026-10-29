@@ -19,13 +19,14 @@ class PipelineExecutionError(Exception):
 
 class PipelineService:
     @staticmethod
-    def get_or_create_job(db: Session, job_key: str, job_type: str = "daily_pipeline") -> Job:
-        """Atomically find or initialize job record with idempotency protection"""
+    def get_or_create_job(db: Session, job_key: str, job_type: str = "daily_pipeline", user_id: Optional[str] = None) -> Job:
+        """Atomically find or initialize job record with idempotency protection and ownership binding"""
         job = db.query(Job).filter(Job.job_key == job_key).first()
         if not job:
             job = Job(
                 job_key=job_key,
                 job_type=job_type,
+                user_id=user_id,
                 status="pending",
                 current_stage="initialized",
                 attempts=0,
@@ -34,6 +35,9 @@ class PipelineService:
             db.add(job)
             db.commit()
             db.refresh(job)
+        elif user_id and not job.user_id:
+            job.user_id = user_id
+            db.commit()
         return job
 
     @staticmethod
@@ -85,7 +89,9 @@ class PipelineService:
         if not job_key:
             job_key = f"pipeline_{user.id}_{today_str}_{int(datetime.now(timezone.utc).timestamp())}"
 
-        job = cls.get_or_create_job(db, job_key=job_key)
+        job = cls.get_or_create_job(db, job_key=job_key, user_id=user.id)
+        if job.user_id and job.user_id != user.id:
+            raise PipelineExecutionError("job_ownership", "Access denied: job belongs to another user.")
 
         # Check if already completed
         if job.status in ("published", "completed"):

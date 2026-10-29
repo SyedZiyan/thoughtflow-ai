@@ -83,10 +83,30 @@ def link_youtube_channel(
 
 @router.post("/connect")
 def connect_youtube(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    """Generates the Google OAuth 2.0 authorization URL for YouTube channel access"""
-    res = youtube_service.get_auth_url(state=f"user_{current_user.id}")
+    """
+    Generates the Google OAuth 2.0 authorization URL bound to a cryptographically
+    random, single-use, expirable OAuth state token stored in the database.
+    """
+    import secrets
+    from datetime import timedelta
+    from app.models.models import OAuthState
+
+    # Generate cryptographically secure 256-bit single-use state token
+    state_token = secrets.token_urlsafe(32)
+    oauth_state = OAuthState(
+        user_id=current_user.id,
+        state_token=state_token,
+        provider="youtube",
+        is_used=False,
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
+    )
+    db.add(oauth_state)
+    db.commit()
+
+    res = youtube_service.get_auth_url(state=state_token)
     return res
 
 @router.post("/simulate-connect", response_model=YouTubeStatusResponse)
@@ -107,17 +127,61 @@ def youtube_callback(
     state: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Handles Google OAuth redirect callback, associates tokens with authentic user, returns branded deep link page"""
-    # Resolve authentic user from state parameter
-    target_user = None
-    if state and state.startswith("user_"):
-        user_id = state.replace("user_", "").strip()
-        target_user = db.query(User).filter(User.id == user_id).first()
+    """
+    Handles Google OAuth redirect callback:
+    1. Validates presence and authenticity of cryptographic state parameter.
+    2. Prevents replay attacks by enforcing single-use consumption.
+    3. Rejects expired, unknown, or previously used states.
+    4. Associates OAuth credentials strictly with the verified user bound to the state token.
+    """
+    from app.models.models import OAuthState
 
+    if not state or not state.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing required OAuth state parameter."
+        )
+
+    oauth_state = (
+        db.query(OAuthState)
+        .filter(OAuthState.state_token == state.strip(), OAuthState.provider == "youtube")
+        .first()
+    )
+
+    if not oauth_state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or unrecognized OAuth state parameter."
+        )
+
+    if oauth_state.is_used:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OAuth state parameter has already been consumed (replay attack prevented)."
+        )
+
+    now_utc = datetime.now(timezone.utc)
+    expires_at = oauth_state.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at < now_utc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OAuth state parameter has expired. Please initiate YouTube connection again."
+        )
+
+    # Consume single-use state immediately
+    oauth_state.is_used = True
+    oauth_state.consumed_at = now_utc
+    db.commit()
+
+    # Resolve authentic user explicitly bound to this validated state
+    target_user = db.query(User).filter(User.id == oauth_state.user_id).first()
     if not target_user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid OAuth state parameter or user session expired. Please re-initiate YouTube connection from ThoughtFlow AI."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account associated with this OAuth session no longer exists."
         )
 
     try:
@@ -299,10 +363,10 @@ def upload_video_to_youtube(
         .filter(Video.id == video_id, Thought.user_id == current_user.id)
         .first()
     )
-    if not video:
+    if not video or not video.thought or video.thought.user_id != current_user.id:
         raise HTTPException(
             status_code=404,
-            detail="Video not found or you do not have permission to upload it."
+            detail="Video not found."
         )
 
     if video.render_status != "completed":

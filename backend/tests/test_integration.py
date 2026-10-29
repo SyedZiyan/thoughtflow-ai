@@ -112,3 +112,120 @@ def test_authentication_enforcement_and_tokens():
         assert bad_api_resp.status_code == 401
     finally:
         db.close()
+
+
+def test_login_rejects_unknown_email_without_creation():
+    """Verify that unknown emails are rejected with 401 and NO account is created"""
+    db = SessionLocal()
+    non_existent_email = "definitely_does_not_exist_9876@example.com"
+    try:
+        # Confirm user does not exist
+        assert db.query(User).filter(User.email == non_existent_email).first() is None
+
+        # Attempt login
+        resp = client.post("/api/v1/auth/login", json={
+            "email": non_existent_email,
+            "password": "SomePassword123!"
+        })
+        assert resp.status_code == 401
+        assert "invalid email or password" in resp.json()["detail"].lower()
+
+        # Confirm user was STILL NOT created
+        assert db.query(User).filter(User.email == non_existent_email).first() is None
+    finally:
+        db.close()
+
+
+def test_registration_password_validation_and_flow():
+    """Verify separate registration endpoint enforces password strength"""
+    # 1. Reject too short password (<8)
+    short_pw = client.post("/api/v1/auth/register", json={
+        "email": "pw_test_1@example.com",
+        "password": "short"
+    })
+    assert short_pw.status_code == 400
+    assert "8 characters" in short_pw.json()["detail"].lower()
+
+    # 2. Reject password with only letters
+    no_num_pw = client.post("/api/v1/auth/register", json={
+        "email": "pw_test_2@example.com",
+        "password": "onlylettershere"
+    })
+    assert no_num_pw.status_code == 400
+    assert "number or special character" in no_num_pw.json()["detail"].lower()
+
+    # 3. Successful registration with strong password
+    valid_reg = client.post("/api/v1/auth/register", json={
+        "email": "unique_register_user_2026@example.com",
+        "password": "StrongPassword2026!"
+    })
+    assert valid_reg.status_code == 200
+    data = valid_reg.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+    assert data["user"]["email"] == "unique_register_user_2026@example.com"
+
+    # 4. Attempt duplicate registration fails
+    dup_reg = client.post("/api/v1/auth/register", json={
+        "email": "unique_register_user_2026@example.com",
+        "password": "StrongPassword2026!"
+    })
+    assert dup_reg.status_code == 400
+
+    # Cleanup
+    db = SessionLocal()
+    db.query(User).filter(User.email == "unique_register_user_2026@example.com").delete()
+    db.commit()
+    db.close()
+
+
+def test_login_rate_limiting():
+    """Verify that 5 failed attempts trigger 429 Too Many Requests"""
+    from app.api.v1.endpoints.auth import login_tracker
+    target_email = "brute_force_target@example.com"
+    rate_key = f"testclient_{target_email}"
+    login_tracker.reset(rate_key)
+
+    # 5 failed attempts
+    for _ in range(5):
+        resp = client.post("/api/v1/auth/login", json={
+            "email": target_email,
+            "password": "WrongPassword123!"
+        })
+        assert resp.status_code == 401
+
+    # 6th attempt should be blocked with 429
+    blocked = client.post("/api/v1/auth/login", json={
+        "email": target_email,
+        "password": "WrongPassword123!"
+    })
+    assert blocked.status_code == 429
+    assert "too many failed login attempts" in blocked.json()["detail"].lower()
+
+    # Reset for other tests
+    login_tracker.reset(rate_key)
+
+
+def test_email_verification_endpoints():
+    """Verify email verification lookup and token consumption"""
+    db = SessionLocal()
+    try:
+        user = get_or_create_test_user(db, email="verify_test@thoughtflow.ai")
+        user.is_verified = False
+        user.verification_token = "valid_test_token_12345"
+        db.commit()
+
+        # 1. Invalid token returns 400
+        bad_token_res = client.get("/api/v1/auth/verify-email?token=invalid_token_xyz")
+        assert bad_token_res.status_code == 400
+
+        # 2. Valid token sets is_verified=True and clears token
+        good_token_res = client.get("/api/v1/auth/verify-email?token=valid_test_token_12345")
+        assert good_token_res.status_code == 200
+        assert good_token_res.json()["status"] == "success"
+
+        db.refresh(user)
+        assert user.is_verified is True
+        assert user.verification_token is None
+    finally:
+        db.close()

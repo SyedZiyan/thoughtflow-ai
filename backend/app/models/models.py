@@ -19,6 +19,8 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(50), default="admin", nullable=False)
+    is_verified = Column(Boolean, default=True, nullable=False)
+    verification_token = Column(String(255), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
@@ -26,6 +28,8 @@ class User(Base):
     settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
     integrations = relationship("Integration", back_populates="user", cascade="all, delete-orphan")
     activity_logs = relationship("ActivityLog", back_populates="user", cascade="all, delete-orphan")
+    jobs = relationship("Job", back_populates="user", cascade="all, delete-orphan")
+    oauth_states = relationship("OAuthState", back_populates="user", cascade="all, delete-orphan")
 
 class Thought(Base):
     __tablename__ = "thoughts"
@@ -73,6 +77,7 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     job_key = Column(String(255), unique=True, index=True, nullable=False)  # guarantees idempotency
     job_type = Column(String(100), nullable=False)  # daily_pipeline, manual_generation, manual_render, youtube_upload
     status = Column(String(50), default="pending", nullable=False)  # pending, generating, rendering, validating, uploading, scheduled, published, failed, cancelled
@@ -84,6 +89,8 @@ class Job(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     finished_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user = relationship("User", back_populates="jobs")
 
 class UserSettings(Base):
     __tablename__ = "user_settings"
@@ -137,3 +144,17 @@ class ActivityLog(Base):
     created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     user = relationship("User", back_populates="activity_logs")
+
+class OAuthState(Base):
+    __tablename__ = "oauth_states"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    state_token = Column(String(255), unique=True, index=True, nullable=False)
+    provider = Column(String(50), default="youtube", nullable=False)
+    is_used = Column(Boolean, default=False, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    consumed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user = relationship("User", back_populates="oauth_states")

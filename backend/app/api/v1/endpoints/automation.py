@@ -69,9 +69,9 @@ def get_automation_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Returns worker daemon health, next scheduled time window, and latest job status"""
+    """Returns worker daemon health, next scheduled time window, and latest job status for current user"""
     user_settings = current_user.settings
-    latest_job = db.query(Job).order_by(Job.created_at.desc()).first()
+    latest_job = db.query(Job).filter(Job.user_id == current_user.id).order_by(Job.created_at.desc()).first()
     heartbeat = get_worker_heartbeat()
 
     return {
@@ -91,8 +91,8 @@ def list_jobs(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Lists recent pipeline and background execution jobs"""
-    query = db.query(Job)
+    """Lists recent pipeline and background execution jobs strictly owned by the authenticated user"""
+    query = db.query(Job).filter(Job.user_id == current_user.id)
     if status_filter:
         query = query.filter(Job.status == status_filter)
     jobs = query.order_by(Job.created_at.desc()).offset(offset).limit(limit).all()
@@ -104,8 +104,8 @@ def get_job(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Inspects a specific background job by ID"""
-    job = db.query(Job).filter(Job.id == id).first()
+    """Inspects a specific background job strictly enforcing requester ownership"""
+    job = db.query(Job).filter(Job.id == id, Job.user_id == current_user.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
     return JobResponse.model_validate(job)
@@ -116,8 +116,8 @@ async def retry_failed_job(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Retries a failed pipeline job"""
-    job = db.query(Job).filter(Job.id == id).first()
+    """Retries a failed pipeline job strictly enforcing requester ownership"""
+    job = db.query(Job).filter(Job.id == id, Job.user_id == current_user.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
 

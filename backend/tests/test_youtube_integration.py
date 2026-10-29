@@ -233,13 +233,67 @@ def test_upload_ownership_authorization():
         db.commit()
         db.refresh(other_video)
 
-        # When current user tries to upload other user's video -> must reject
+        # When current user tries to upload other user's video -> must reject with 404
         resp = client.post(f"/api/v1/youtube/upload/{other_video.id}", headers=headers)
         assert resp.status_code == 404
-        assert "permission" in resp.json()["detail"].lower()
+        assert "not found" in resp.json()["detail"].lower()
     finally:
         db.query(Video).filter(Video.storage_key == "dummy_other_video.mp4").delete()
         db.query(Thought).filter(Thought.text == "Private thought of another creator.").delete()
         db.query(User).filter(User.email == "other_creator@thoughtflow.ai").delete()
         db.commit()
+        db.close()
+
+
+def test_oauth_state_generation_and_validation():
+    from app.models.models import OAuthState
+    from datetime import timedelta
+    db = SessionLocal()
+    user = None
+    try:
+        user = get_or_create_test_user(db, email="oauth_test_user@thoughtflow.ai")
+        headers = get_test_auth_headers(user)
+
+        # 1. /connect generates a cryptographically random, unconsumed state token
+        connect_res = client.post("/api/v1/youtube/connect", headers=headers)
+        assert connect_res.status_code == 200
+
+        state_rec = (
+            db.query(OAuthState)
+            .filter(OAuthState.user_id == user.id, OAuthState.provider == "youtube")
+            .order_by(OAuthState.created_at.desc())
+            .first()
+        )
+        assert state_rec is not None
+        assert state_rec.is_used is False
+        assert len(state_rec.state_token) >= 32
+
+        # 2. Callback rejects missing state
+        cb_missing = client.get("/api/v1/youtube/callback?code=fake_code")
+        assert cb_missing.status_code == 400
+        assert "missing" in cb_missing.json()["detail"].lower()
+
+        # 3. Callback rejects unrecognized/mismatched state
+        cb_invalid = client.get("/api/v1/youtube/callback?code=fake_code&state=forged_state_xyz")
+        assert cb_invalid.status_code == 400
+        assert "invalid" in cb_invalid.json()["detail"].lower()
+
+        # 4. Callback rejects expired state
+        state_rec.expires_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+        db.commit()
+        cb_expired = client.get(f"/api/v1/youtube/callback?code=fake_code&state={state_rec.state_token}")
+        assert cb_expired.status_code == 400
+        assert "expired" in cb_expired.json()["detail"].lower()
+
+        # 5. Callback rejects reused state (replay attack prevention)
+        state_rec.expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+        state_rec.is_used = True
+        db.commit()
+        cb_reused = client.get(f"/api/v1/youtube/callback?code=fake_code&state={state_rec.state_token}")
+        assert cb_reused.status_code == 400
+        assert "consumed" in cb_reused.json()["detail"].lower() or "replay" in cb_reused.json()["detail"].lower()
+    finally:
+        if user:
+            db.query(OAuthState).filter(OAuthState.user_id == user.id).delete()
+            db.commit()
         db.close()
