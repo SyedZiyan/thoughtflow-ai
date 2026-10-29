@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.api.deps import get_current_user
-from app.models.models import User, Integration, Video, ActivityLog
+from app.models.models import User, Integration, Video, Thought, ActivityLog
 from app.schemas.schemas import YouTubeStatusResponse, YouTubeUploadRequest
 from app.services.youtube_service import youtube_service
 from app.core.config import settings
@@ -253,9 +253,18 @@ def upload_video_to_youtube(
     db: Session = Depends(get_db)
 ):
     """Uploads a rendered video to YouTube (or safe dry run mode if credentials unconfigured)"""
-    video = db.query(Video).filter(Video.id == video_id).first()
+    # Priority 1: Enforce video ownership authorization check
+    video = (
+        db.query(Video)
+        .join(Thought, Video.thought_id == Thought.id)
+        .filter(Video.id == video_id, Thought.user_id == current_user.id)
+        .first()
+    )
     if not video:
-        raise HTTPException(status_code=404, detail="Video not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="Video not found or you do not have permission to upload it."
+        )
 
     if video.render_status != "completed":
         raise HTTPException(status_code=400, detail=f"Cannot upload video in '{video.render_status}' status. Render must be completed.")

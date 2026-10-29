@@ -4,12 +4,15 @@ import logging
 import shutil
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException, Request
+from typing import Optional
+from fastapi import FastAPI, Depends, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.core.config import settings
-from app.db.session import engine, Base, SessionLocal
+from app.db.session import engine, Base, SessionLocal, get_db
 from app.api.v1.api import api_router
 from app.api.deps import get_or_create_default_user
 
@@ -30,6 +33,8 @@ async def lifespan(app: FastAPI):
         logger.info("Database initialized and default user verified.")
     except Exception as e:
         logger.error(f"Startup database initialization error: {e}")
+        if settings.ENVIRONMENT == "production":
+            raise RuntimeError(f"Critical database initialization failure in production: {e}") from e
     yield
 
 app = FastAPI(
@@ -174,12 +179,37 @@ def download_page():
     </html>
     """
 
+def resolve_latest_apk_path() -> Optional[Path]:
+    """
+    Resolves the latest compiled APK across multiple production & development locations:
+    1. Explicit environment variable APK_FILE_PATH
+    2. Project root ThoughtFlow-AI-Latest.apk
+    3. Storage directory ThoughtFlow-AI-Latest.apk
+    4. Local backend directory ThoughtFlow-AI-Latest.apk
+    5. Local Android build output directory
+    """
+    custom_env = os.environ.get("APK_FILE_PATH")
+    candidates = [
+        Path(custom_env) if custom_env else None,
+        Path(__file__).resolve().parent.parent.parent / "ThoughtFlow-AI-Latest.apk",
+        Path(__file__).resolve().parent.parent / "ThoughtFlow-AI-Latest.apk",
+        Path(settings.STORAGE_DIR) / "ThoughtFlow-AI-Latest.apk",
+        Path(__file__).resolve().parent.parent.parent / "apps" / "android" / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk",
+    ]
+    for p in candidates:
+        if p and p.exists() and p.is_file() and p.stat().st_size > 1000000:
+            return p
+    return None
+
 @app.api_route("/api/v1/app/download", methods=["GET", "HEAD"], tags=["App Distribution"])
 def download_latest_apk():
     """Serves the latest compiled Android debug APK for over-the-air updates"""
-    apk_path = Path(__file__).resolve().parent.parent.parent / "apps" / "android" / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
-    if not apk_path.exists():
-        raise HTTPException(status_code=404, detail="APK build not found on server. Build it first with Gradle.")
+    apk_path = resolve_latest_apk_path()
+    if not apk_path:
+        raise HTTPException(
+            status_code=404,
+            detail="APK build not found on server. Ensure ThoughtFlow-AI-Latest.apk is present or configure APK_FILE_PATH."
+        )
     return FileResponse(
         path=str(apk_path),
         filename="ThoughtFlow-AI-Latest.apk",
@@ -189,8 +219,8 @@ def download_latest_apk():
 @app.get("/api/v1/app/version", tags=["App Distribution"])
 def get_app_version():
     """Returns metadata about the latest compiled APK on the server"""
-    apk_path = Path(__file__).resolve().parent.parent.parent / "apps" / "android" / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
-    file_size_mb = round(apk_path.stat().st_size / (1024 * 1024), 1) if apk_path.exists() else 16.3
+    apk_path = resolve_latest_apk_path()
+    file_size_mb = round(apk_path.stat().st_size / (1024 * 1024), 1) if apk_path else 25.4
     
     version_file = Path(__file__).resolve().parent / "version_info.json"
     if version_file.exists():
@@ -203,24 +233,48 @@ def get_app_version():
             pass
 
     return {
-        "version_name": "1.0.1",
-        "version_code": 2,
-        "release_notes": "Added In-App OTA Auto-Updater, 9:16 Shorts Player & YouTube Shorts Studio",
+        "version_name": "1.3.7",
+        "version_code": 20,
+        "release_notes": "Lock backend server URL to prevent accidental typos and OTA disconnects (v1.3.7)",
         "download_url": "/api/v1/app/download",
         "file_size_mb": file_size_mb
     }
 
 @app.get("/health", tags=["Health"])
-def health_check():
-    """Verify backend health, database connectivity, and FFmpeg installation"""
+def health_check(response: Response, db: Session = Depends(get_db)):
+    """Truthful health check verifying database connectivity, storage writability, and FFmpeg"""
+    db_healthy = False
+    try:
+        db.execute(text("SELECT 1"))
+        db_healthy = True
+    except Exception as e:
+        logger.error(f"Health check DB probe failed: {e}")
+
     ffmpeg_found = shutil.which(settings.FFMPEG_PATH) is not None
     ffprobe_found = shutil.which(settings.FFPROBE_PATH) is not None
+
+    storage_writable = False
+    try:
+        probe_path = Path(settings.STORAGE_DIR)
+        probe_path.mkdir(parents=True, exist_ok=True)
+        probe_file = probe_path / ".health_check_probe"
+        probe_file.write_text("ok")
+        probe_file.unlink()
+        storage_writable = True
+    except Exception as e:
+        logger.warning(f"Storage writability probe failed: {e}")
+
+    is_healthy = db_healthy and storage_writable
+    if not is_healthy:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
     return {
-        "status": "healthy",
+        "status": "healthy" if is_healthy else "degraded",
         "service": "ThoughtFlow AI Backend",
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
-        "database": "connected",
+        "database": "connected" if db_healthy else "disconnected",
+        "storage_writable": storage_writable,
         "ffmpeg_installed": ffmpeg_found,
         "ffprobe_installed": ffprobe_found,
         "ai_provider": settings.AI_PROVIDER,

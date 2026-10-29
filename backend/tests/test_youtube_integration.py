@@ -164,3 +164,52 @@ def test_api_youtube_sync_metrics_no_channel():
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] in ["skipped", "success"]
+
+def test_upload_ownership_authorization():
+    db = SessionLocal()
+    try:
+        user = get_or_create_default_user(db)
+
+        # Create a thought & video belonging to another user
+        other_user = User(
+            email="other_creator@thoughtflow.ai",
+            password_hash="dummy_hash_other"
+        )
+        db.add(other_user)
+        db.commit()
+        db.refresh(other_user)
+
+        other_thought = Thought(
+            user_id=other_user.id,
+            text="Private thought of another creator.",
+            theme="mindfulness",
+            title="Private Short #Shorts",
+            description="Other user short",
+            content_hash="dummy_hash_other_123",
+            status="rendered"
+        )
+        db.add(other_thought)
+        db.commit()
+        db.refresh(other_thought)
+
+        other_video = Video(
+            thought_id=other_thought.id,
+            storage_key="dummy_other_video.mp4",
+            title="Other Title",
+            description="Other Desc",
+            render_status="completed"
+        )
+        db.add(other_video)
+        db.commit()
+        db.refresh(other_video)
+
+        # When current user tries to upload other user's video -> must reject
+        resp = client.post(f"/api/v1/youtube/upload/{other_video.id}")
+        assert resp.status_code == 404
+        assert "permission" in resp.json()["detail"].lower()
+    finally:
+        db.query(Video).filter(Video.storage_key == "dummy_other_video.mp4").delete()
+        db.query(Thought).filter(Thought.text == "Private thought of another creator.").delete()
+        db.query(User).filter(User.email == "other_creator@thoughtflow.ai").delete()
+        db.commit()
+        db.close()
