@@ -1,8 +1,10 @@
 import os
 import json
+import logging
 import shutil
 from pathlib import Path
-from fastapi import FastAPI, Depends, HTTPException
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
@@ -11,31 +13,55 @@ from app.db.session import engine, Base, SessionLocal
 from app.api.v1.api import api_router
 from app.api.deps import get_or_create_default_user
 
-# Create database tables automatically
-Base.metadata.create_all(bind=engine)
+logger = logging.getLogger("thoughtflow.main")
 
-# Seed default creator user on application startup
-db_init = SessionLocal()
-try:
-    get_or_create_default_user(db_init)
-finally:
-    db_init.close()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Safely manage application startup and shutdown lifecycle"""
+    try:
+        # Create database tables automatically
+        Base.metadata.create_all(bind=engine)
+        # Seed default creator user on application startup
+        db_init = SessionLocal()
+        try:
+            get_or_create_default_user(db_init)
+        finally:
+            db_init.close()
+        logger.info("Database initialized and default user verified.")
+    except Exception as e:
+        logger.error(f"Startup database initialization error: {e}")
+    yield
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="ThoughtFlow AI - Daily Motivational Thought Generation, Animated YouTube Shorts Automation & Publishing API",
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
 )
 
-# CORS Middleware
+# Tightened CORS Middleware with explicit trusted origins
+cors_origins = [str(origin).strip() for origin in settings.CORS_ORIGINS if origin != "*"]
+if not cors_origins and settings.ENVIRONMENT == "development":
+    cors_origins = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows local dev from web and mobile apps
+    allow_origins=cors_origins,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$" if settings.ENVIRONMENT == "development" else None,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
 )
+
+# Standard Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
 
 # Mount video storage for browser and mobile media playback
 video_dir = Path(settings.VIDEO_STORAGE_DIR)

@@ -83,12 +83,27 @@ cd apps/android
 The APK will be generated at:
 `apps/android/app/build/outputs/apk/debug/app-debug.apk`
 
-### 3. Deploy to Cloud (24/7 Execution)
-The repository includes a production-ready [`render.yaml`](./render.yaml):
+### 3. Deploy to Cloud
+
+#### Option A: Quick Cloud Demo (Render Free Tier)
+The repository includes a production-ready [`render.yaml`](./render.yaml) for hosting the API with a free HTTPS URL:
 1. Create a free account on [Render.com](https://render.com).
-2. Click **New +** > **Web Service** > Connect your **`thoughtflow-ai`** GitHub repository.
-3. Select **Docker** runtime. Render will automatically build and host your API 24/7 with a free HTTPS URL.
+2. Click **New +** > **Blueprint** > Connect your **`thoughtflow-ai`** GitHub repository.
+3. Render automatically builds the Docker container and assigns an HTTPS URL (`https://your-service.onrender.com`).
 4. Add your `GEMINI_API_KEY` and YouTube credentials in Render's **Environment** tab.
+> [!NOTE]
+> Render's free web tier is an on-demand service that spins down after 15 minutes of inactivity and has an ephemeral filesystem. It is ideal for API demos and testing.
+
+#### Option B: Durable 24/7 Production Automation (Oracle Cloud Always Free or VPS)
+For continuous background scheduling and durable video storage:
+1. Deploy via **Docker Compose** on a persistent server (e.g., [Oracle Cloud Always Free](https://cloud.oracle.com/) 4-core / 24 GB RAM VM or a Linux VPS):
+   ```bash
+   git clone https://github.com/SyedZiyan/thoughtflow-ai.git
+   cd thoughtflow-ai
+   cp .env.example .env
+   docker-compose up -d --build
+   ```
+2. Your backend, database, and background workers run 24/7 with persistent storage volumes and no sleep timeouts.
 
 ---
 

@@ -13,8 +13,8 @@ services:
       - key: DEBUG
         value: "False"
       - key: AI_PROVIDER
-        value: mock
+        value: gemini
       - key: YOUTUBE_UPLOAD_ENABLED
-        value: "True"
+        value: "False"
       - key: DEFAULT_TIMEZONE
         value: Asia/Kolkata

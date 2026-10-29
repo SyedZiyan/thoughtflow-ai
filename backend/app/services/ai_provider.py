@@ -410,8 +410,28 @@ class OpenAIAIProvider(BaseAIProvider):
 
 def get_ai_provider(provider_type: Optional[str] = None) -> BaseAIProvider:
     provider = (provider_type or settings.AI_PROVIDER).lower()
-    if provider == "gemini" and settings.GEMINI_API_KEY:
-        return GeminiAIProvider(settings.GEMINI_API_KEY, settings.AI_MODEL_NAME)
-    elif provider in ("openai", "chatgpt") and settings.OPENAI_API_KEY:
-        return OpenAIAIProvider(settings.OPENAI_API_KEY, settings.AI_MODEL_NAME)
+    if provider == "gemini":
+        if settings.GEMINI_API_KEY:
+            return GeminiAIProvider(settings.GEMINI_API_KEY, settings.AI_MODEL_NAME)
+        elif settings.ENVIRONMENT == "production":
+            raise AIProviderError(
+                "AI_PROVIDER is set to 'gemini' but GEMINI_API_KEY is not configured. "
+                "Please configure GEMINI_API_KEY in your environment variables."
+            )
+        else:
+            logger.warning(
+                "AI_PROVIDER is set to 'gemini' but GEMINI_API_KEY is missing. "
+                "Falling back to local offline MockAIProvider for development."
+            )
+            return MockAIProvider()
+    elif provider in ("openai", "chatgpt"):
+        if settings.OPENAI_API_KEY:
+            return OpenAIAIProvider(settings.OPENAI_API_KEY, settings.AI_MODEL_NAME)
+        elif settings.ENVIRONMENT == "production":
+            raise AIProviderError(
+                "AI_PROVIDER is set to 'openai' but OPENAI_API_KEY is not configured."
+            )
+        else:
+            logger.warning("OPENAI_API_KEY is missing. Falling back to MockAIProvider.")
+            return MockAIProvider()
     return MockAIProvider()

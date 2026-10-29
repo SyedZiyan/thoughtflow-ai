@@ -6,15 +6,13 @@ services:
     container_name: thoughtflow-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: thoughtflow_db
-      POSTGRES_USER: thoughtflow_user
-      POSTGRES_PASSWORD: thoughtflow_secure_password_123
+      POSTGRES_DB: ${POSTGRES_DB:-thoughtflow_db}
+      POSTGRES_USER: ${POSTGRES_USER:-thoughtflow_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-thoughtflow_dev_password_change_me}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U thoughtflow_user -d thoughtflow_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-thoughtflow_user} -d ${POSTGRES_DB:-thoughtflow_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -33,7 +31,7 @@ services:
     environment:
       ENVIRONMENT: production
       DEBUG: "False"
-      DATABASE_URL: postgresql+psycopg2://thoughtflow_user:thoughtflow_secure_password_123@db:5432/thoughtflow_db
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-thoughtflow_user}:${POSTGRES_PASSWORD:-thoughtflow_dev_password_change_me}@db:5432/${POSTGRES_DB:-thoughtflow_db}
       STORAGE_DIR: /app/storage
       VIDEO_STORAGE_DIR: /app/storage/videos
       TEMP_STORAGE_DIR: /app/storage/temp
@@ -64,7 +62,7 @@ services:
       backend:
         condition: service_started
     environment:
-      DATABASE_URL: postgresql+psycopg2://thoughtflow_user:thoughtflow_secure_password_123@db:5432/thoughtflow_db
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-thoughtflow_user}:${POSTGRES_PASSWORD:-thoughtflow_dev_password_change_me}@db:5432/${POSTGRES_DB:-thoughtflow_db}
       STORAGE_DIR: /app/storage
       VIDEO_STORAGE_DIR: /app/storage/videos
       TEMP_STORAGE_DIR: /app/storage/temp
