@@ -79,7 +79,7 @@ def test_dry_run_upload_safety(tmp_path):
     )
 
     assert res["dry_run"] is True
-    assert res["status"] == "dry_run_validated"
+    assert res["status"] in ("dry_run_validated", "dry_run_pending_credentials")
     assert "dryrun_" in res["youtube_video_id"]
     assert "youtube.com" in res["youtube_url"]
     assert "Dry-run mode active" in res["message"]

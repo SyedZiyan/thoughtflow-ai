@@ -47,10 +47,10 @@ def test_near_duplicate_detection():
     is_dup2, _ = check_near_duplicate(unique_cand, existing, threshold=0.7)
     assert is_dup2 is False
 
-def test_mock_ai_provider_generation():
-    import asyncio
+@pytest.mark.asyncio
+async def test_mock_ai_provider_generation():
     provider = MockAIProvider()
-    thought = asyncio.run(provider.generate_thought(theme="consistency"))
+    thought = await provider.generate_thought(theme="consistency")
     assert thought.theme == "consistency"
     assert len(thought.thought) > 10
     assert len(thought.title) > 5

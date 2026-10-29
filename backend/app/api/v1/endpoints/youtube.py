@@ -199,9 +199,13 @@ def get_youtube_status(
         .first()
     )
 
-    has_real_credentials = bool(
+    is_connected = bool(
         integration
         and integration.connection_status == "connected"
+    )
+
+    has_real_credentials = bool(
+        is_connected
         and integration.encrypted_credentials
         and integration.encrypted_credentials != "demo_connected_credentials"
     )
@@ -212,13 +216,13 @@ def get_youtube_status(
     elif not has_real_credentials:
         remaining_setup = "Authorize channel with Google OAuth"
 
-    if not integration or not has_real_credentials:
+    if not integration or not is_connected:
         channel_name = integration.channel_title if integration else None
         return YouTubeStatusResponse(
             connected=False,
             channel_title=channel_name,
-            upload_enabled=settings.YOUTUBE_UPLOAD_ENABLED and has_real_credentials,
-            dry_run_mode=not (settings.YOUTUBE_UPLOAD_ENABLED and has_real_credentials),
+            upload_enabled=False,
+            dry_run_mode=True,
             oauth_configured=oauth_configured,
             oauth_authorized=False,
             remaining_setup=remaining_setup
@@ -234,11 +238,11 @@ def get_youtube_status(
         video_count=meta.get("video_count"),
         view_count=meta.get("view_count"),
         connected_at=integration.connected_at,
-        upload_enabled=settings.YOUTUBE_UPLOAD_ENABLED,
-        dry_run_mode=not settings.YOUTUBE_UPLOAD_ENABLED,
-        oauth_configured=True,
-        oauth_authorized=True,
-        remaining_setup=None
+        upload_enabled=settings.YOUTUBE_UPLOAD_ENABLED and has_real_credentials,
+        dry_run_mode=not (settings.YOUTUBE_UPLOAD_ENABLED and has_real_credentials),
+        oauth_configured=oauth_configured,
+        oauth_authorized=has_real_credentials,
+        remaining_setup=remaining_setup if not has_real_credentials else None
     )
 
 @router.post("/upload/{video_id}")

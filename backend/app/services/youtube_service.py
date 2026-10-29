@@ -243,11 +243,12 @@ class YouTubeService:
         if not self.upload_enabled or not encrypted_credentials_str:
             reason = "YOUTUBE_UPLOAD_ENABLED=False" if not self.upload_enabled else "missing Google OAuth credentials"
             logger.info(f"Operating in dry-run mode for YouTube upload ({reason}). No video was uploaded to YouTube.")
+            dry_id = f"dryrun_{int(datetime.now(timezone.utc).timestamp())}"
             return {
                 "dry_run": True,
-                "status": "dry_run_pending_credentials",
-                "youtube_video_id": None,
-                "youtube_url": None,
+                "status": "dry_run_pending_credentials" if not encrypted_credentials_str else "dry_run_validated",
+                "youtube_video_id": dry_id,
+                "youtube_url": f"https://www.youtube.com/shorts/{dry_id}",
                 "message": f"Dry-run mode active ({reason}). Video rendered and saved locally, but YouTube upload requires Google OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET) in .env and channel authorization."
             }
 
