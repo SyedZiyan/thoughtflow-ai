@@ -178,7 +178,7 @@ def download_page():
                     <li>Tap <b>Update</b> when prompted by Android.</li>
                 </ol>
             </div>
-            <div class="footer">Version 1.3.7 • Direct In-App APK Download</div>
+            <div class="footer">Version 1.3.8 • Direct In-App APK Download</div>
         </div>
     </body>
     </html>
@@ -238,9 +238,9 @@ def get_app_version():
             pass
 
     return {
-        "version_name": "1.3.7",
-        "version_code": 20,
-        "release_notes": "Lock backend server URL to prevent accidental typos and update check failures (v1.3.7)",
+        "version_name": "1.3.8",
+        "version_code": 21,
+        "release_notes": "Hardened authentication & zero-trust security. Cryptographic OAuth state verification, locked server protection, and robust job ownership enforcement (v1.3.8)",
         "download_url": "/api/v1/app/download",
         "file_size_mb": file_size_mb
     }
