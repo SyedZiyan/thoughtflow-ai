@@ -63,3 +63,34 @@ def test_analytics_endpoint():
     data = response.json()
     assert "total_published_videos" in data
     assert "success_rate" in data
+
+def test_authentication_enforcement_and_tokens():
+    from app.core.config import settings
+    from app.core.security import create_access_token
+    from app.api.deps import get_or_create_default_user
+
+    # 1. Invalid bearer token must return 401
+    invalid_resp = client.get("/api/v1/dashboard", headers={"Authorization": "Bearer invalid_garbage_token_123"})
+    assert invalid_resp.status_code == 401
+    assert "invalid" in invalid_resp.json()["detail"].lower()
+
+    # 2. When AUTH_REQUIRED is enabled, unauthenticated requests must be blocked with 401
+    original_auth_req = settings.AUTH_REQUIRED
+    try:
+        settings.AUTH_REQUIRED = True
+        blocked_resp = client.get("/api/v1/dashboard")
+        assert blocked_resp.status_code == 401
+
+        # 3. Valid bearer token passes
+        db = SessionLocal()
+        user = get_or_create_default_user(db)
+        db.close()
+        token = create_access_token(subject=user.id)
+        valid_resp = client.get("/api/v1/dashboard", headers={"Authorization": f"Bearer {token}"})
+        assert valid_resp.status_code == 200
+
+        # 4. Valid programmatic X-API-Key passes
+        api_key_resp = client.get("/api/v1/dashboard", headers={"X-API-Key": settings.APP_SECRET_KEY})
+        assert api_key_resp.status_code == 200
+    finally:
+        settings.AUTH_REQUIRED = original_auth_req

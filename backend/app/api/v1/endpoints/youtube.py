@@ -2,9 +2,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_or_create_default_user
 from app.models.models import User, Integration, Video, Thought, ActivityLog
 from app.schemas.schemas import YouTubeStatusResponse, YouTubeUploadRequest
 from app.services.youtube_service import youtube_service
@@ -100,27 +101,35 @@ def simulate_youtube_connection(
     return get_youtube_status(current_user=current_user, db=db)
 
 
-@router.get("/callback")
+@router.get("/callback", response_class=HTMLResponse)
 def youtube_callback(
     code: str,
     state: Optional[str] = None,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Handles Google OAuth redirect callback, stores encrypted tokens and channel info"""
+    """Handles Google OAuth redirect callback, associates tokens with authentic user, returns branded deep link page"""
+    # Resolve authentic user from state parameter
+    target_user = None
+    if state and state.startswith("user_"):
+        user_id = state.replace("user_", "").strip()
+        target_user = db.query(User).filter(User.id == user_id).first()
+
+    if not target_user:
+        target_user = get_or_create_default_user(db)
+
     try:
         token_info = youtube_service.exchange_code_for_tokens(code)
         channel_data = youtube_service.get_channel_info(token_info["encrypted_credentials"])
 
-        # Find or create integration record
+        # Find or create integration record for authentic target user
         integration = (
             db.query(Integration)
-            .filter(Integration.user_id == current_user.id, Integration.provider == "youtube")
+            .filter(Integration.user_id == target_user.id, Integration.provider == "youtube")
             .first()
         )
         if not integration:
             integration = Integration(
-                user_id=current_user.id,
+                user_id=target_user.id,
                 provider="youtube"
             )
             db.add(integration)
@@ -134,7 +143,7 @@ def youtube_callback(
 
         # Log connection event
         log = ActivityLog(
-            user_id=current_user.id,
+            user_id=target_user.id,
             event_type="youtube_connected",
             message=f"Connected YouTube channel: {integration.channel_title} ({integration.channel_id})",
             log_metadata={"channel_title": integration.channel_title, "channel_id": integration.channel_id}
@@ -142,12 +151,39 @@ def youtube_callback(
         db.add(log)
         db.commit()
 
-        return {
-            "status": "success",
-            "message": f"Successfully connected channel: {integration.channel_title}",
-            "channel_id": integration.channel_id,
-            "channel_title": integration.channel_title
-        }
+        title = integration.channel_title or "YouTube Channel"
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>YouTube Connected - ThoughtFlow AI</title>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0A0B0E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }}
+                .card {{ background: #181920; border: 1px solid #7C3AED; border-radius: 24px; padding: 36px 28px; max-width: 420px; text-align: center; box-shadow: 0 20px 40px rgba(124, 58, 237, 0.2); }}
+                .badge {{ display: inline-flex; width: 64px; height: 64px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #10B981; font-size: 32px; align-items: center; justify-content: center; margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.4); }}
+                h2 {{ margin: 0 0 10px 0; font-size: 22px; color: #FFFFFF; }}
+                p {{ color: #94A3B8; font-size: 14px; line-height: 1.5; margin: 0 0 24px 0; }}
+                .channel-name {{ color: #A78BFA; font-weight: bold; }}
+                .btn {{ display: block; width: 100%; box-sizing: border-box; background: linear-gradient(135deg, #7C3AED, #4F46E5); color: white; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-weight: 600; font-size: 14px; }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="badge">✓</div>
+                <h2>YouTube Connected!</h2>
+                <p>Your channel <span class="channel-name">{title}</span> has been authenticated successfully. Automated Shorts publishing is now authorized.</p>
+                <a href="thoughtflow://oauth-success" class="btn">Return to ThoughtFlow App</a>
+            </div>
+            <script>
+                setTimeout(function() {{
+                    window.location.href = "thoughtflow://oauth-success";
+                }}, 1500);
+            </script>
+        </body>
+        </html>
+        """
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"OAuth connection failed: {str(e)}")

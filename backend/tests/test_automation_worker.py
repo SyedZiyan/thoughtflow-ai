@@ -9,7 +9,7 @@ from app.db.session import SessionLocal
 from app.models.models import User, Thought, Video, Job, UserSettings, ActivityLog
 from app.api.deps import get_or_create_default_user
 from app.services.pipeline_service import PipelineService, PipelineExecutionError
-from worker.scheduler import is_time_to_generate, write_heartbeat, HEARTBEAT_FILE
+from worker.scheduler import is_time_to_generate, is_time_to_publish, write_heartbeat, HEARTBEAT_FILE
 from app.api.v1.endpoints.automation import get_worker_heartbeat
 
 client = TestClient(app)
@@ -128,6 +128,14 @@ def test_timezone_generation_schedule_check():
     now_utc = datetime.now(timezone.utc)
     if now_utc.hour != 23:
         assert is_time_to_generate(settings) is False
+
+def test_timezone_publishing_schedule_check():
+    settings = UserSettings(
+        user_id="test_tz_user",
+        timezone="UTC",
+        publishing_time=datetime.now(timezone.utc).strftime("%H:%M")
+    )
+    assert is_time_to_publish(settings) is True
 
 
 # ==========================================

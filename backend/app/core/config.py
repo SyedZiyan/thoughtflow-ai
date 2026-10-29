@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
+    AUTH_REQUIRED: bool = False
     APP_SECRET_KEY: str = "dev_secret_thoughtflow_change_in_production_key_12345"
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",

@@ -68,12 +68,35 @@ def is_time_to_generate(user_settings: UserSettings) -> bool:
         return True
     return False
 
+def is_time_to_publish(user_settings: UserSettings) -> bool:
+    """
+    Checks if the current moment matches the user's configured publishing time in their specific timezone.
+    Matches within a 15-minute tolerance window.
+    """
+    try:
+        user_tz_name = user_settings.timezone or "UTC"
+        user_tz = ZoneInfo(user_tz_name)
+    except Exception:
+        user_tz = timezone.utc
+
+    now_user_time = datetime.now(user_tz)
+    pub_time_str = user_settings.publishing_time or "09:00"
+
+    try:
+        target_hour, target_min = map(int, pub_time_str.split(":"))
+    except ValueError:
+        target_hour, target_min = 9, 0
+
+    if now_user_time.hour == target_hour and abs(now_user_time.minute - target_min) <= 15:
+        return True
+    return False
+
 def run_worker_cycle(force: bool = False):
     """
     Executes a single pass of the automation worker:
     1. Reclaims any crashed / stalled jobs from previous worker runs.
-    2. Iterates over active users and checks timezone generation schedule.
-    3. Runs pipeline idempotently with database-backed state protection.
+    2. Iterates over active users and checks timezone generation and publishing schedules.
+    3. Runs pipeline and publishing idempotently with database-backed state protection.
     4. Records heartbeat.
     """
     logger.info("Starting automation worker cycle...")
@@ -103,32 +126,78 @@ def run_worker_cycle(force: bool = False):
             user_now = datetime.now(user_tz)
             user_date_str = user_now.date().isoformat()
 
-            # Schedule match check (unless forced via manual CLI trigger)
-            if not force and not is_time_to_generate(user_settings):
+            time_for_gen = force or is_time_to_generate(user_settings)
+            time_for_pub = force or is_time_to_publish(user_settings)
+
+            if not time_for_gen and not time_for_pub:
                 logger.info(
-                    f"User {user.email}: Local time {user_now.strftime('%H:%M %Z')} does not match scheduled time {user_settings.generation_time}. Skipping."
+                    f"User {user.email}: Local time {user_now.strftime('%H:%M %Z')} matches neither "
+                    f"generation ({user_settings.generation_time}) nor publishing ({user_settings.publishing_time}). Skipping."
                 )
                 continue
 
-            job_key = f"daily_pipeline_{user.id}_{user_date_str}"
-            logger.info(f"Executing daily automation pipeline for {user.email} (key: {job_key})...")
-
-            try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                res = loop.run_until_complete(
-                    PipelineService.execute_pipeline(
-                        db=db,
-                        user=user,
-                        job_key=job_key,
-                        skip_upload=not user_settings.auto_publish_enabled
+            # Publishing phase: if scheduled for publishing, publish any rendered unuploaded videos for today
+            if time_for_pub and user_settings.auto_publish_enabled:
+                from app.models.models import Video, Thought, Integration
+                from app.services.youtube_service import youtube_service
+                pending_videos = (
+                    db.query(Video)
+                    .join(Thought, Video.thought_id == Thought.id)
+                    .filter(
+                        Thought.user_id == user.id,
+                        Video.render_status == "completed",
+                        Video.upload_status == "not_uploaded"
                     )
+                    .all()
                 )
-                loop.close()
-                processed_count += 1
-                logger.info(f"Successfully processed pipeline for {user.email}: {res.get('message', 'Completed')}")
-            except Exception as pipe_err:
-                logger.error(f"Pipeline error for {user.email}: {pipe_err}")
+                for v in pending_videos:
+                    logger.info(f"Publishing pending video '{v.title}' for {user.email}...")
+                    yt_integration = (
+                        db.query(Integration)
+                        .filter(Integration.user_id == user.id, Integration.provider == "youtube")
+                        .first()
+                    )
+                    creds_str = yt_integration.encrypted_credentials if yt_integration else None
+                    video_file = Path(settings.VIDEO_STORAGE_DIR) / v.storage_key
+                    if video_file.exists():
+                        res = youtube_service.upload_video(
+                            video_path=str(video_file),
+                            title=v.title,
+                            description=v.description,
+                            tags=v.thought.hashtags if v.thought else ["shorts"],
+                            privacy_status="private",
+                            encrypted_credentials_str=creds_str
+                        )
+                        if not res.get("dry_run"):
+                            v.upload_status = "published"
+                            v.youtube_video_id = res.get("youtube_video_id")
+                            v.youtube_url = res.get("youtube_url")
+                            v.published_at = datetime.now(timezone.utc)
+                            db.commit()
+
+            # Generation phase: if scheduled for generation, run daily pipeline
+            if time_for_gen:
+                job_key = f"daily_pipeline_{user.id}_{user_date_str}"
+                logger.info(f"Executing daily automation pipeline for {user.email} (key: {job_key})...")
+
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    # Skip upload during generation if publishing time is configured for a later hour
+                    is_same_hour = user_settings.generation_time == user_settings.publishing_time
+                    res = loop.run_until_complete(
+                        PipelineService.execute_pipeline(
+                            db=db,
+                            user=user,
+                            job_key=job_key,
+                            skip_upload=not (user_settings.auto_publish_enabled and (force or is_same_hour))
+                        )
+                    )
+                    loop.close()
+                    processed_count += 1
+                    logger.info(f"Successfully processed pipeline for {user.email}: {res.get('message', 'Completed')}")
+                except Exception as pipe_err:
+                    logger.error(f"Pipeline error for {user.email}: {pipe_err}")
 
         write_heartbeat(status="healthy", last_action=f"processed_{processed_count}_users")
         logger.info(f"Automation worker cycle finished. Processed {processed_count} scheduled pipelines.")
